@@ -1,0 +1,154 @@
+#!/usr/bin/python3
+import sys
+import getopt
+import traceback
+import datetime
+import struct
+
+import OutputBackends
+from GSConnection import GSConnection
+from LogDataParser import LogDataParser
+
+def showhelp(msg = None):
+	if msg is not None:
+		print(msg, file = sys.stderr)
+		print(file = sys.stderr)
+	print("%s (-d Device) (-v) [Cmd1] ([Cmd2]) ([Cmd3]) ..." % (sys.argv[0]), file = sys.stderr)
+	print("   -d Device     Specifies the device that the Gamma Scout is", file = sys.stderr)
+	print("                 connected to. Default is /dev/ttyUSB0", file = sys.stderr)
+	print("   -v            Outputs debug information", file = sys.stderr)
+	print(file = sys.stderr)
+	print("  Commands:", file = sys.stderr)
+	print("     identify", file = sys.stderr)
+	print("         Displays information like the Gamma Scout software version and", file = sys.stderr)
+	print("         serial number of the device", file = sys.stderr)
+	print("     synctime", file = sys.stderr)
+	print("         Synchronizes the time with the current system time", file = sys.stderr)
+	print("     settime:YYYY-MM-DD-HH-MM-SS", file = sys.stderr)
+	print("         Sets the time to the user defined value", file = sys.stderr)
+	print("     readlog:[txt|sqlite|csv|bin]:[Filename]", file = sys.stderr)
+	print("         Reads out Gamma Scout log in text format, sqlite format, CSV", file = sys.stderr)
+	print("         or binary format and writes the results to the specified filename", file = sys.stderr)
+	print("     clearlog", file = sys.stderr)
+	print("         Deletes the Gamma Scout log", file = sys.stderr)
+	print("     readcfg:Filename", file = sys.stderr)
+	print("         Reads out the configuration blob and writes it in the specified", file = sys.stderr)
+	print("         file in binary format", file = sys.stderr)
+	print("     devicereset", file = sys.stderr)
+	print("         Completely resets the device to its factory defaults. Do not perform", file = sys.stderr)
+	print("         this operation unless you have a good reason to.", file = sys.stderr)
+	print(file = sys.stderr)
+	print("  Examples:", file = sys.stderr)
+	print("     %s -d /dev/ttyUSB3 identify" % (sys.argv[0]), file = sys.stderr)
+	print("     %s readlog:sqlite:/home/joe/foobar.sqlite clearlog" % (sys.argv[0]), file = sys.stderr)
+	sys.exit(1)
+
+try:
+	(optlist, args) = getopt.getopt(sys.argv[1:], "d:v")
+except getopt.GetoptError as getopterr:
+	showhelp("Cannot parse options: " + str(getopterr))
+
+if len(args) == 0:
+	showhelp("Nothing to do.")
+
+parameters = {
+	"device":		"/dev/ttyUSB0",
+	"verbose":		False,
+}
+for (option, value) in optlist:
+	if option == "-d":
+		parameters["device"] = value
+	elif option == "-v":
+		parameters["verbose"] = True
+	else:
+		raise Exception("Programming bug: option '%s' not implemented." % (option))
+
+def cmd_identify(conn):
+	conn.switchmode("PC")
+	version = conn.getversion()
+	print("Current date and time: %s" % (version["datetime"].strftime("%Y-%m-%d %H:%M:%S")))
+	print("Serial number        : %d" % (version["serial"]))
+	print("Software version     : %s" % (version["version"]))
+	print("Log buffer fill      : %d bytes" % (version["buffill"]))
+
+def cmd_synctime(conn):
+	conn.switchmode("PC")
+	conn.synctime()
+
+def cmd_settime(conn, arg):
+	if len(arg) != 1:
+		showhelp("settime command expects 1 argument, %d given." % (len(arg)))
+	try:
+		date = datetime.datetime.strptime(arg[0], "%Y-%m-%d-%H-%M-%S")
+	except ValueError as msg:
+		showhelp("settime format invalid: " + str(msg))
+	conn.switchmode("PC")
+	conn.settime(date)
+
+def cmd_readlog(conn, arg, parameters):
+	if len(arg) != 2:
+		showhelp("readlog command expects 2 argument, %d given." % (len(arg)))
+	if arg[0] not in [ "txt", "sqlite", "csv", "bin" ]:
+		showhelp("readlog command expects either 'txt', 'sqlite', 'csv' or 'bin' as first argument, %s given." % (arg[0]))
+	(logsize, logdata) = conn.readlog()
+	
+	backend = None
+	if arg[0] == "bin":
+		outfile = open(arg[1], "wb")
+		# Write the log size first as 32-bit integer, little endian
+		outfile.write(struct.pack("<L", logsize))
+		outfile.write(logdata)
+		outfile.close()
+	elif arg[0] == "txt":
+		backend = OutputBackends.OutputBackendTXT(arg[1])
+	elif arg[0] == "csv":
+		backend = OutputBackends.OutputBackendCSV(arg[1])
+	elif arg[0] == "sqlite":
+		backend = OutputBackends.OutputBackendSqlite(arg[1])
+	
+	if backend:
+		LogDataParser(logdata, backend, parameters["verbose"]).parse(logsize)
+		backend.close()
+
+def cmd_clearlog(conn):
+	conn.clearlog()
+
+def cmd_readcfg(conn, arg):
+	if len(arg) != 1:
+		showhelp("readcfg command expects 1 argument, %d given." % (len(arg)))
+	outfile = open(arg[0], "wb")
+	blob = conn.readconfig()
+	outfile.write(blob)
+	outfile.close()
+
+def cmd_devicereset(conn, arg):
+	conn.devicereset()
+
+conn = GSConnection(parameters["device"], parameters["verbose"])
+try:
+	for arg in args:
+		arg = arg.split(":")
+		if arg[0] == "identify":
+			cmd_identify(conn)
+		elif arg[0] == "synctime":
+			cmd_synctime(conn)
+		elif arg[0] == "settime":
+			cmd_settime(conn, arg[1 :])
+		elif arg[0] == "readlog":
+			cmd_readlog(conn, arg[1 :], parameters)
+		elif arg[0] == "clearlog":
+			cmd_clearlog(conn)
+		elif arg[0] == "readcfg":
+			cmd_readcfg(conn, arg[1 :])
+		elif arg[0] == "devicereset":
+			cmd_devicereset(conn)
+		else:
+			showhelp("Unknown command '%s'." % (arg))
+#except:
+#	traceback.print_exc()
+finally:
+	conn.switchmode("Standard")
+	conn.close()
+	sys.exit(0)
+
+
