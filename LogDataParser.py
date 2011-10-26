@@ -48,97 +48,14 @@ class LogDataParser():
 		return self._data[o : o + length]
 	
 	def _gotcounts(self, timesecs, counts):
+		if timesecs is None:
+			print("Got no timesecs, but %d counts, ignoring." % (counts), file = sys.stderr)
+			return
+		if self._curdate is None:
+			print("Got timesecs %s, counts %d without an initial timevalue, ignoring." % (str(timesecs), counts), file = sys.stderr)
+			return
 		todate = self._curdate + datetime.timedelta(0, timesecs)
 		self._output.newinterval(self._curdate, todate, counts)
 		self._debug("%s - %s: %d" % (self._curdate, todate, counts))
 		self._curdate = todate
-
-	def parse(self, length = None):
-		self._offset = 0
-		while (self._offset != len(self._data)) and ((length is None) or (self._offset < length)):
-			peek = self._peekbyte()
-			if peek == 0xf5:
-				# Discard that byte
-				self._nextbytes(1)
-
-				peek = self._peekbyte()
-				if peek == 0xef:
-					data = self._nextbytes(6)[1:]
-					data = LogDataParser._hexdecify(data)
-					(minute, hour, day, month, year) = data
-					year += 2000
-					self._debug("Set Date: %04d-%02d-%02d %2d:%02d" % (year, month, day, hour, minute))
-					self._curdate = datetime.datetime(year, month, day, hour, minute)
-				elif peek == 0xee:
-					data = self._nextbytes(5)[1:]
-					gap = ((data[1] << 8) | data[0]) * 10
-					cts = (data[2] << 8) | data[3]
-					self._debug("Gap: %d:%02d:%02d, Cts: %d, CPM: %.1f" % (gap // 3600, gap % 3600 // 60, gap % 60, cts, cts / gap * 60))
-					self._gotcounts(gap, cts)
-				elif peek == 0x0c:
-					self._debug("Interval 10 seconds")
-					self._nextbytes(1)
-					self._interval = 10
-				elif peek == 0x0b:
-					self._debug("Interval 30 Seconds")
-					self._nextbytes(1)
-					self._interval = 30
-				elif peek == 0x0a:
-					self._debug("Interval 1 minute")
-					self._nextbytes(1)
-					self._interval = 60
-				elif peek == 0x09:
-					self._debug("Interval 2 minutes")
-					self._nextbytes(1)
-					self._interval = 2 * 60
-				elif peek == 0x08:
-					self._debug("Interval 5 minutes")
-					self._nextbytes(1)
-					self._interval = 5 * 60
-				elif peek == 0x07:
-					self._debug("Interval 10 minutes")
-					self._nextbytes(1)
-					self._interval = 10 * 60
-				elif peek == 0x06:
-					self._debug("Interval 30 minutes")
-					self._nextbytes(1)
-					self._interval = 30 * 60
-				elif peek == 0x05:
-					self._debug("Interval 1 hour")
-					self._nextbytes(1)
-					self._interval = 1 * 3600
-				elif peek == 0x04:
-					self._debug("Interval 2 hours")
-					self._nextbytes(1)
-					self._interval = 2 * 3600
-				elif peek == 0x03:
-					self._debug("Interval 12 hours")
-					self._nextbytes(1)
-					self._interval = 12 * 3600
-				elif peek == 0x02:
-					self._debug("Interval 1 day")
-					self._nextbytes(1)
-					self._interval = 1 * 86400
-				elif peek == 0x01:
-					self._debug("Interval 3 days")
-					self._nextbytes(1)
-					self._interval = 3 * 86400
-				elif peek == 0x00:
-					self._debug("Interval 7 days")
-					self._nextbytes(1)
-					self._interval = 7 * 86400
-				elif peek == 0xf3:
-					self._debug("Unknown command 0xf3")
-					self._nextbytes(1)
-				elif peek == 0xf4:
-					self._debug("Unknown command 0xf4")
-					self._nextbytes(1)
-				else:
-					self._debug("Unknown special (0x%x)!" % (peek))
-					sys.exit(1)
-
-			else:
-				counts = self._nextbytes(2)
-				counts = (counts[0] << 8) | counts[1]
-				self._gotcounts(self._interval, counts)
 
