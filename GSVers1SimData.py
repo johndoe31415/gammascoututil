@@ -21,7 +21,7 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 #
 
-class GSBasicSimData():
+class GSVers1SimData():
 	_data = {
 		"v": [ "", " Version 5.43" ],
 		"b": [ 
@@ -164,4 +164,4 @@ class GSBasicSimData():
 	}
 
 	def __getitem__(self, key):
-		return GSBasicSimData._data[key]
+		return GSVers1SimData._data[key]

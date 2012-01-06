@@ -24,11 +24,11 @@
 import sys
 import datetime
 from GSConnection import GSConnection
-from GSBasicSimData import GSBasicSimData
+from GSVers1SimData import GSVers1SimData
 from RE import RE
 from CommunicationError import CommunicationError
 
-class GSConnectionBasic(GSConnection):
+class GSConnectionVers1(GSConnection):
 	_version_pc_regex = RE(" Version ([0-9]\.[0-9]{2})")
 	_config_firstline_regex = RE(RE.GHEXADECIMAL + " " + RE.GHEXADECIMAL + " " + RE.GHEXADECIMAL)
 
@@ -41,7 +41,7 @@ class GSConnectionBasic(GSConnection):
 	def _simdata(self, command):
 		if self._simulation:
 			self._bufferhasitems.acquire()
-			self._databuffer += GSBasicSimData()[command]
+			self._databuffer += GSVers1SimData()[command]
 			self._bufferhasitems.notify_all()
 			self._bufferhasitems.release()
 
@@ -57,8 +57,11 @@ class GSConnectionBasic(GSConnection):
 		self._simdata("u")
 		self._expectresponse(" Zeit gestellt ")
 
-	def synctime(self):
-		self.settime(datetime.datetime.now())
+	def synctime(self, utctime = False):
+		if utctime:
+			self.settime(datetime.datetime.utcnow())
+		else:
+			self.settime(datetime.datetime.now())
 
 	def getversion(self, reqmode = None):
 		self._write("v")
@@ -73,8 +76,8 @@ class GSConnectionBasic(GSConnection):
 			raise CommunicationError("timeout", "Timeout waiting for second datagram of version.")
 
 		result = { "Mode": "PC" }
-		if GSConnectionBasic._version_pc_regex.match(versionstr):
-			result["version"] = GSConnectionBasic._version_pc_regex[1]
+		if GSConnectionVers1._version_pc_regex.match(versionstr):
+			result["version"] = GSConnectionVers1._version_pc_regex[1]
 		else:
 			raise CommunicationError("unparsable", "Unparsable version string '%s'." % (versionstr))
 		return result

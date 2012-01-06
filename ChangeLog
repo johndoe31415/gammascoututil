@@ -1,3 +1,21 @@
+Summary of changes from v0.03 to v0.04 (2012-01-06)
+===================================================
+
+	* Fixed a bug which would record incorrect count amounts for the
+	v2-Protocol of the Gamma Scout for counts >2^11 per interval (thanks go to
+	Benjamin Knispel for the bug report and provided test data)
+	* Included a script "fix_counts_v0.03.py" which fixes incorrectly recorded
+	count data
+	* The v1 and v2 protocol have nothing to do with the Basic/Alert variant
+	of the counter. Renamed everything and changed command line parameters to
+	do the right thing (also thanks to Benjamin Knispel for reporting this).
+	* Synchronizing time to Gamma Scout is now possible in UTC ("syncutctime"
+	command)
+	* SQLite output backend added a metadata table which contains version
+	information (in case this shall be automatically upgraded in the future)
+	* Fixed a hang for v2 protocol that would occur if no Gamma Scout was
+	connected to the PC
+
 Summary of changes from v0.03-RC3 to v0.03 (2011-10-26)
 =======================================================
 
@@ -23,8 +41,7 @@ Summary of changes from v0.03-RC1 to v0.03-RC2 (2011-10-23)
 Summary of changes from v0.02 to v0.03-RC1 (2011-10-14)
 =======================================================
 
-	* Added support for Gamma Scout without Alert (referred to as "Gamma Scout
-	Basic" for disambiguation)
+	* Added support for "Gamma Scout Basic" (aka "Gamma Scout without Alert")
 	* Added very simple simulation data feature for Gamma Scout Basic (data
 	kindly provided by Jörg Wartenberg)
 	* Added XML export functionality

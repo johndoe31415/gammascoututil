@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
@@ -21,36 +22,20 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 #
 
-import sqlite3
+import sys
 
-class SQLite():
-	def __init__(self, filename):
-		self._conn = sqlite3.connect(filename)
-		self._cursor = self._conn.cursor()
+def expcts(counts):
+	(exponent, mantissa) = ((counts[0] & 0xfc) >> 2, ((counts[0] & 0x03) << 8) | counts[1])
+	exponent = (exponent + 1) // 2
+	if exponent == 0:
+		counts = mantissa
+	else:
+		counts = (mantissa + (2 ** 10)) * (2 ** (exponent - 1))
+	return counts
 
-	def commit(self):
-		self._conn.commit()
 
-	def execute(self, query, *args):
-		self._cursor.execute(query, args)
-		return self
-
-	def exec_mayfail_commit(self, query):
-		try:
-			self._cursor.execute(query)
-			self.commit()
-		except sqlite3.OperationalError:
-			pass
-		
-	def fetchone(self):
-		return self._cursor.fetchone()
-	
-	def fetchall(self):
-		return self._cursor.fetchall()
-
-if __name__ == "__main__":
-	s = SQLite("foo.sqlite")
-	s.exec_mayfail_commit("CREATE TABLE foo (id integer PRIMARY KEY, bar integer);")
-	s.execute("INSERT INTO foo (bar) VALUES (?);", (123))
-	s.execute("INSERT INTO foo (bar) VALUES (999);")
-	s.commit()
+for line in sys.stdin:
+	i = int(line)
+	cts = [ (i & 0xff00) >> 8, i & 0xff ]
+	ects = expcts(cts)
+	print(ects)

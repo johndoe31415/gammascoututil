@@ -24,9 +24,10 @@
 import sys
 import datetime
 from GSConnection import GSConnection
+from CommunicationError import CommunicationError
 from RE import RE
 
-class GSConnectionAlert(GSConnection):
+class GSConnectionVers2(GSConnection):
 	_version_pc_regex = RE("Version ([0-9]\.[0-9]{2}) " + RE.GDECIMAL + " " + RE.GHEXADECIMAL + " ([0-9]{2})\.([0-9]{2})\.([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})")
 	_config_firstline_regex = RE(RE.GHEXADECIMAL + " " + RE.GHEXADECIMAL + " " + RE.GHEXADECIMAL)
 
@@ -40,8 +41,11 @@ class GSConnectionAlert(GSConnection):
 		self._writeslow(command)
 		self._expectresponse("Datum und Zeit gestellt")
 
-	def synctime(self):
-		self.settime(datetime.datetime.now())
+	def synctime(self, utctime = False):
+		if utctime:
+			self.settime(datetime.datetime.utcnow())
+		else:
+			self.settime(datetime.datetime.now())
 
 	def getversion(self, reqmode = None):
 		if reqmode is not None:
@@ -59,17 +63,17 @@ class GSConnectionAlert(GSConnection):
 		result = { "Mode": None }
 		if versionstr == "Standard":
 			result["Mode"] = "Standard"
-		elif GSConnectionAlert._version_pc_regex.match(versionstr):
+		elif GSConnectionVers2._version_pc_regex.match(versionstr):
 			result["Mode"] = "PC"
-			result["version"] = GSConnectionAlert._version_pc_regex[1]
-			result["serial"] = int(GSConnectionAlert._version_pc_regex[2])
-			result["buffill"] = int(GSConnectionAlert._version_pc_regex[3], 16)
-			day = int(GSConnectionAlert._version_pc_regex[4])
-			mon = int(GSConnectionAlert._version_pc_regex[5])
-			year = int(GSConnectionAlert._version_pc_regex[6]) + 2000
-			hour = int(GSConnectionAlert._version_pc_regex[7])
-			mint = int(GSConnectionAlert._version_pc_regex[8])
-			sec = int(GSConnectionAlert._version_pc_regex[9])
+			result["version"] = GSConnectionVers2._version_pc_regex[1]
+			result["serial"] = int(GSConnectionVers2._version_pc_regex[2])
+			result["buffill"] = int(GSConnectionVers2._version_pc_regex[3], 16)
+			day = int(GSConnectionVers2._version_pc_regex[4])
+			mon = int(GSConnectionVers2._version_pc_regex[5])
+			year = int(GSConnectionVers2._version_pc_regex[6]) + 2000
+			hour = int(GSConnectionVers2._version_pc_regex[7])
+			mint = int(GSConnectionVers2._version_pc_regex[8])
+			sec = int(GSConnectionVers2._version_pc_regex[9])
 			result["datetime"] = datetime.datetime(year, mon, day, hour, mint, sec)
 		else:
 			raise CommunicationError("unparsable", "Unparsable version string '%s'." % (versionstr))
@@ -111,7 +115,7 @@ class GSConnectionAlert(GSConnection):
 				raise CommunicationError("unparsable", "Protocol line was not a multiple of two bytes (%d bytes received)." % (len(nextmsg)))
 
 			logdata = [ int(nextmsg[2 * i : 2 * i + 2], 16) for i in range(len(nextmsg) // 2) ]
-			calcchksum = GSConnectionAlert._linechecksum(logdata)
+			calcchksum = GSConnectionVers2._linechecksum(logdata)
 			if calcchksum != logdata[-1]:
 				# Warn about this only, cannot do anything anyways
 				print("Warning: Log line %d has checksum error, calculated 0x%x, transmitted 0x%x." % (calcchksum, logdata[-1]), file = sys.stderr)
@@ -141,11 +145,11 @@ class GSConnectionAlert(GSConnection):
 			if nextmsg is None:
 				break
 			if linecnt == 2:
-				if not GSConnectionAlert._config_firstline_regex.match(nextmsg):
+				if not GSConnectionVers2._config_firstline_regex.match(nextmsg):
 					raise CommunicationError("unparsable", "First configuration data line format unexpected (received '%s')." % (nextmsg))
-				log.append(int(GSConnectionAlert._config_firstline_regex[1], 16))
-				log.append(int(GSConnectionAlert._config_firstline_regex[2], 16))
-				nextmsg = GSConnectionAlert._config_firstline_regex[3]
+				log.append(int(GSConnectionVers2._config_firstline_regex[1], 16))
+				log.append(int(GSConnectionVers2._config_firstline_regex[2], 16))
+				nextmsg = GSConnectionVers2._config_firstline_regex[3]
 
 			if linecnt >= 2:
 				logdata = [ int(nextmsg[2 * i : 2 * i + 2], 16) for i in range(len(nextmsg) // 2) ]
@@ -153,5 +157,9 @@ class GSConnectionAlert(GSConnection):
 		return bytes(log)
 
 	def close(self):
-		self._switchmode("Standard")
+		try:
+			self._switchmode("Standard")
+		except CommunicationError as e:
+			print("Unabled to switch back to standard mode: %s" % (str(e)), file = sys.stderr)
 		GSConnection.close(self)
+

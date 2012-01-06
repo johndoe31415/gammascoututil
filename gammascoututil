@@ -29,22 +29,21 @@ import datetime
 import struct
 
 import OutputBackends
-from GSConnectionBasic import GSConnectionBasic
-from LogDataParserBasic import LogDataParserBasic
-from GSConnectionAlert import GSConnectionAlert
-from LogDataParserAlert import LogDataParserAlert
+from GSConnectionVers1 import GSConnectionVers1
+from LogDataParserVers1 import LogDataParserVers1
+from GSConnectionVers2 import GSConnectionVers2
+from LogDataParserVers2 import LogDataParserVers2
 from CommunicationError import CommunicationError
 
 def showhelp(msg = None):
 	if msg is not None:
 		print(msg, file = sys.stderr)
 		print(file = sys.stderr)
-	print("%s (-d Device) (-t Type) (-v) [Cmd1] ([Cmd2]) ([Cmd3]) ..." % (sys.argv[0]), file = sys.stderr)
+	print("%s (-d Device) (-p Protocol) (-v) [Cmd1] ([Cmd2]) ([Cmd3]) ..." % (sys.argv[0]), file = sys.stderr)
 	print("   -d Device     Specifies the serial device that the Gamma Scout is", file = sys.stderr)
 	print("                 connected to. Default is /dev/ttyUSB0", file = sys.stderr)
-	print("   -t Type       Specifies the device type of Gamma Scout that is", file = sys.stderr)
-	print("                 connected. Either 'basic' or 'alert'. Default is", file = sys.stderr)
-	print("                 'alert'.", file = sys.stderr)
+	print("   -p Protocol   Specifies the device protocol the connected Gamma Scout", file = sys.stderr)
+	print("                 uses. Either 'v1' or 'v2'. Default is 'v2'.", file = sys.stderr)
 	print("   -v            Outputs debug information", file = sys.stderr)
 	print("   --help        Displays this help page", file = sys.stderr)
 	print(file = sys.stderr)
@@ -53,7 +52,9 @@ def showhelp(msg = None):
 	print("         Displays information like the Gamma Scout software version and", file = sys.stderr)
 	print("         serial number of the device", file = sys.stderr)
 	print("     synctime", file = sys.stderr)
-	print("         Synchronizes the time with the current system time", file = sys.stderr)
+	print("         Synchronizes the time with the current local system time", file = sys.stderr)
+	print("     syncutctime", file = sys.stderr)
+	print("         Synchronizes the time with the current time in UTC (GMT+0)", file = sys.stderr)
 	print("     settime:YYYY-MM-DD-HH-MM-SS", file = sys.stderr)
 	print("         Sets the time to the user defined value", file = sys.stderr)
 	print("     readlog:[txt|sqlite|csv|xml|bin]:[Filename]", file = sys.stderr)
@@ -69,31 +70,31 @@ def showhelp(msg = None):
 	print("         this operation unless you have a good reason to.", file = sys.stderr)
 	print(file = sys.stderr)
 	print("  Examples:", file = sys.stderr)
-	print("     %s -t basic -d /dev/ttyS0 identify" % (sys.argv[0]), file = sys.stderr)
+	print("     %s -p v1 -d /dev/ttyS0 identify" % (sys.argv[0]), file = sys.stderr)
 	print("     %s -d /dev/ttyUSB3 identify" % (sys.argv[0]), file = sys.stderr)
 	print("     %s readlog:sqlite:/home/joe/foobar.sqlite clearlog" % (sys.argv[0]), file = sys.stderr)
 	sys.exit(1)
 
 try:
-	(optlist, args) = getopt.getopt(sys.argv[1:], "d:vt:", [ "help" ])
+	(optlist, args) = getopt.getopt(sys.argv[1:], "d:vp:", [ "help" ])
 except getopt.GetoptError as getopterr:
 	showhelp("Cannot parse options: " + str(getopterr))
 
 parameters = {
 	"device":		"/dev/ttyUSB0",
 	"verbose":		False,
-	"type":			"alert",
+	"protocol":		"v2",
 }
 for (option, value) in optlist:
 	if option == "-d":
 		parameters["device"] = value
 	elif option == "-v":
 		parameters["verbose"] = True
-	elif option == "-t":
+	elif option == "-p":
 		value = value.lower()
-		if value not in [ "basic", "alert" ]:
-			syntax("Type must be either 'basic' or 'alert'.")
-		parameters["type"] = value
+		if value not in [ "v1", "v2" ]:
+			syntax("Protocol must be either 'v1' or 'v2'.")
+		parameters["protocol"] = value
 	elif option == "--help":
 		showhelp()
 	else:
@@ -103,7 +104,7 @@ if len(args) == 0:
 	showhelp("Nothing to do.")
 		
 		
-validargs = set(["identify", "synctime", "settime", "readlog", "clearlog", "readcfg", "devicereset" ])
+validargs = set(["identify", "synctime", "syncutctime", "settime", "readlog", "clearlog", "readcfg", "devicereset" ])
 for arg in args:
 	arg = arg.split(":")[0]
 	if arg not in validargs:
@@ -121,8 +122,8 @@ def cmd_identify(conn):
 	if version.get("buffill"):
 		print("Log buffer fill      : %d bytes" % (version["buffill"]))
 
-def cmd_synctime(conn):
-	conn.synctime()
+def cmd_synctime(conn, utctime = False):
+	conn.synctime(utctime)
 
 def cmd_settime(conn, arg):
 	if len(arg) != 1:
@@ -158,10 +159,10 @@ def cmd_readlog(conn, arg, parameters):
 	
 	if backend:
 		handlerclasses = {
-			"basic":		LogDataParserBasic,
-			"alert":		LogDataParserAlert,
+			"v1":		LogDataParserVers1,
+			"v2":		LogDataParserVers2,
 		}
-		handlerclasses[parameters["type"]](logdata, backend, parameters["verbose"]).parse(logsize)
+		handlerclasses[parameters["protocol"]](logdata, backend, parameters["verbose"]).parse(logsize)
 		backend.close()
 
 def cmd_clearlog(conn):
@@ -179,10 +180,10 @@ def cmd_devicereset(conn):
 	conn.devicereset()
 
 handlerclasses = {
-	"basic":		GSConnectionBasic,
-	"alert":		GSConnectionAlert,
+	"v1":		GSConnectionVers1,
+	"v2":		GSConnectionVers2,
 }
-conn = handlerclasses[parameters["type"]](parameters["device"], parameters["verbose"])
+conn = handlerclasses[parameters["protocol"]](parameters["device"], parameters["verbose"])
 try:
 	for arg in args:
 		arg = arg.split(":")
@@ -190,6 +191,8 @@ try:
 			cmd_identify(conn)
 		elif arg[0] == "synctime":
 			cmd_synctime(conn)
+		elif arg[0] == "syncutctime":
+			cmd_synctime(conn, True)
 		elif arg[0] == "settime":
 			cmd_settime(conn, arg[1 :])
 		elif arg[0] == "readlog":
@@ -204,7 +207,7 @@ try:
 			showhelp("Unknown command '%s'." % (arg))
 except CommunicationError as e:
 	print(str(e), file = sys.stderr)
-	if (e.gettype() == "timeout") and (parameters["type"] == "basic"):
+	if (e.gettype() == "timeout") and (parameters["protocol"] == "v1"):
 		print("   - Did you maybe forget to put the Gamma Scout into PC mode?", file = sys.stderr)
 except SystemExit:
 	pass
