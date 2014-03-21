@@ -21,21 +21,21 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 #
 
+import logging
 import sys
 import datetime
 
 class LogDataParser():
-	def __init__(self, data, outputbackend, debugmode = False):
+	def __init__(self, data, outputbackend):
+		self._log = logging.getLogger("gsu.parser." + self.__class__.__name__)
 		self._data = data
 		self._output = outputbackend
-		self._debugmode = debugmode
 		self._curdate = None
 		self._interval = None
+		self._offset = 0
+		self._overflow = False
 
-	def _debug(self, text):
-		if self._debugmode:
-			print(text, file = sys.stderr)
-
+	@staticmethod
 	def _hexdecify(data):
 		return [ (10 * ((x & 0xf0) >> 4) + (x & 0x0f))  for x in data ]
 
@@ -47,26 +47,28 @@ class LogDataParser():
 		self._offset += length
 		return self._data[o : o + length]
 	
-	def _gotcounts(self, timesecs, counts):
+	def _gotcounts(self, timesecs, counts, overflow = False):
 		if timesecs is None:
-			print("Got no timesecs, but %d counts, ignoring." % (counts), file = sys.stderr)
+			self._log.warn("0x%x: Got no timesecs, but %d counts, ignoring (overflow = %s)." % (self._offset, counts, overflow))
 			return
 		if self._curdate is None:
-			print("Got timesecs %s, counts %d without an initial timevalue, ignoring." % (str(timesecs), counts), file = sys.stderr)
+			self._log.warn("0x%x: Got timesecs %s, counts %d without an initial timevalue, ignoring (overflow = %s)." % (self._offset, str(timesecs), counts, overflow))
 			return
 		todate = self._curdate + datetime.timedelta(0, timesecs)
 		self._output.newinterval(self._curdate, todate, counts)
-		self._debug("%s - %s: %d" % (self._curdate, todate, counts))
+		self._log.debug("0x%x: %s - %s: %d (overflow = %s)" % (self._offset, self._curdate, todate, counts, overflow))
 		self._curdate = todate
 
-	def _expcts(counts):
+	def _expcts(self, expcounts):
 		"""Convert counts from Mirow's exponential representation into an
 		integer."""
-		(exponent, mantissa) = ((counts[0] & 0xfc) >> 2, ((counts[0] & 0x03) << 8) | counts[1])
+		(exponent, mantissa) = ((expcounts[0] & 0xfc) >> 2, ((expcounts[0] & 0x03) << 8) | expcounts[1])
 		exponent = (exponent + 1) // 2
 		if exponent == 0:
 			counts = mantissa
 		else:
 			counts = (mantissa + (2 ** 10)) * (2 ** (exponent - 1))
+		self._log.debug("0x%x: Exponential count conversion: %s [exp = %d, man = %d] -> %d" % (self._offset, "".join([ "%02x" % (c) for c in expcounts ]), exponent, mantissa, counts))
 		return counts
+
 

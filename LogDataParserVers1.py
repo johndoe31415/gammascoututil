@@ -26,8 +26,8 @@ import datetime
 from LogDataParser import LogDataParser
 
 class LogDataParserVers1(LogDataParser):
-	def __init__(self, data, outputbackend, debugmode = False):
-		LogDataParser.__init__(self, data, outputbackend, debugmode)
+	def __init__(self, data, outputbackend):
+		LogDataParser.__init__(self, data, outputbackend)
 
 	def parse(self, length = None):
 		serial_number_str = LogDataParser._hexdecify(self._data[0 : 3])
@@ -45,49 +45,45 @@ class LogDataParserVers1(LogDataParser):
 					data = LogDataParser._hexdecify(data)
 					(minute, hour, day, month, year) = data
 					year += 2000
-					self._debug("Set Date: %04d-%02d-%02d %2d:%02d" % (year, month, day, hour, minute))
+					self._log.debug("Set Date: %04d-%02d-%02d %2d:%02d" % (year, month, day, hour, minute))
 					self._curdate = datetime.datetime(year, month, day, hour, minute)
 				elif peek == 0xff:
 					data = self._nextbytes(5)[1:]
 					gap = ((data[1] << 8) | data[0]) * 60
-					cts = LogDataParser._expcts(data[2 : 4])
+					cts = self._expcts(data[2 : 4])
 					if gap != 0:
-						self._debug("Gap: %d:%02d:%02d, Cts: %d, CPM: %.1f" % (gap // 3600, gap % 3600 // 60, gap % 60, cts, cts / gap * 60))
+						self._log.debug("Gap: %d:%02d:%02d, Cts: %d, CPM: %.1f" % (gap // 3600, gap % 3600 // 60, gap % 60, cts, cts / gap * 60))
 					else:
-						self._debug("Zero gap: Cts: %s" % (cts))
+						self._log.debug("Zero gap: Cts: %s" % (cts))
 					self._gotcounts(gap, cts)
 				elif peek == 0xf4:
-					self._debug("Interval 1 minute")
+					self._log.debug("Interval 1 minute")
 					self._nextbytes(1)
 					self._interval = 60
 				elif peek == 0xf3:
-					self._debug("Interval 10 minutes")
+					self._log.debug("Interval 10 minutes")
 					self._nextbytes(1)
 					self._interval = 10 * 60
 				elif peek == 0xf2:
-					self._debug("Interval 1 hour")
+					self._log.debug("Interval 1 hour")
 					self._nextbytes(1)
 					self._interval = 1 * 3600
 				elif peek == 0xf1:
-					self._debug("Interval 1 day")
+					self._log.debug("Interval 1 day")
 					self._nextbytes(1)
 					self._interval = 1 * 86400
 				elif peek == 0xf0:
-					self._debug("Interval 7 days")
+					self._log.debug("Interval 7 days")
 					self._nextbytes(1)
 					self._interval = 7 * 86400
 				else:
-					self._debug("Unknown special (0x%x) at offset 0x%x!" % (peek, self._offset))
+					self._log.error("Unknown special (0x%x) at offset 0x%x!" % (peek, self._offset))
 					sys.exit(1)
 
 			else:
-				counts = LogDataParser._expcts(self._nextbytes(2))
+				counts = self._expcts(self._nextbytes(2))
 				self._gotcounts(self._interval, counts)
 
 if __name__ == "__main__":
-	print(LogDataParser._expcts(bytes([ 0x00, 0xaa ])))
-	print(LogDataParser._expcts(bytes([ 0x01, 0xbb ])))
-	print(LogDataParser._expcts(bytes([ 0x02, 0xcc ])))
-	print(LogDataParser._expcts(bytes([ 0x0a, 0xdd ])))
-	print(LogDataParser._expcts(bytes([ 0xab, 0xcd ])))
+	pass
 

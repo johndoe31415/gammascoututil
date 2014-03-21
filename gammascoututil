@@ -23,198 +23,44 @@
 #
 
 import sys
-import getopt
 import traceback
-import datetime
-import struct
+import textwrap
 
-import OutputBackends
-from GSConnectionVers1 import GSConnectionVers1
-from LogDataParserVers1 import LogDataParserVers1
-from GSConnectionVers2 import GSConnectionVers2
-from LogDataParserVers2 import LogDataParserVers2
-from CommunicationError import CommunicationError
+from Exceptions import CommunicationException, InvalidArgumentException
+from ArgumentParser import ArgumentParser
+from GammaCommands import GammaCommands
+from LogSetup import LogSetup
 
-def showhelp(msg = None):
-	if msg is not None:
-		print(msg, file = sys.stderr)
-		print(file = sys.stderr)
-	print("%s (-d Device) (-p Protocol) (-v) [Cmd1] ([Cmd2]) ([Cmd3]) ..." % (sys.argv[0]), file = sys.stderr)
-	print("   -d Device     Specifies the serial device that the Gamma Scout is", file = sys.stderr)
-	print("                 connected to. Default is /dev/ttyUSB0", file = sys.stderr)
-	print("   -p Protocol   Specifies the device protocol the connected Gamma Scout", file = sys.stderr)
-	print("                 uses. Either 'v1' or 'v2'. Default is 'v2'.", file = sys.stderr)
-	print("   -v            Outputs debug information", file = sys.stderr)
-	print("   --help        Displays this help page", file = sys.stderr)
-	print(file = sys.stderr)
-	print("  Commands:", file = sys.stderr)
-	print("     identify", file = sys.stderr)
-	print("         Displays information like the Gamma Scout software version and", file = sys.stderr)
-	print("         serial number of the device", file = sys.stderr)
-	print("     synctime", file = sys.stderr)
-	print("         Synchronizes the time with the current local system time", file = sys.stderr)
-	print("     syncutctime", file = sys.stderr)
-	print("         Synchronizes the time with the current time in UTC (GMT+0)", file = sys.stderr)
-	print("     settime:YYYY-MM-DD-HH-MM-SS", file = sys.stderr)
-	print("         Sets the time to the user defined value", file = sys.stderr)
-	print("     readlog:[txt|sqlite|csv|xml|bin]:[Filename]", file = sys.stderr)
-	print("         Reads out Gamma Scout log in text format, sqlite format, CSV, XML", file = sys.stderr)
-	print("         or binary format and writes the results to the specified filename", file = sys.stderr)
-	print("     clearlog", file = sys.stderr)
-	print("         Deletes the Gamma Scout log", file = sys.stderr)
-	print("     readcfg:Filename", file = sys.stderr)
-	print("         Reads out the configuration blob and writes it in the specified", file = sys.stderr)
-	print("         file in binary format", file = sys.stderr)
-	print("     devicereset", file = sys.stderr)
-	print("         Completely resets the device to its factory defaults. Do not perform", file = sys.stderr)
-	print("         this operation unless you have a good reason to.", file = sys.stderr)
-	print(file = sys.stderr)
-	print("  Examples:", file = sys.stderr)
-	print("     %s -p v1 -d /dev/ttyS0 identify" % (sys.argv[0]), file = sys.stderr)
-	print("     %s -d /dev/ttyUSB3 identify" % (sys.argv[0]), file = sys.stderr)
-	print("     %s readlog:sqlite:/home/joe/foobar.sqlite clearlog" % (sys.argv[0]), file = sys.stderr)
-	sys.exit(1)
+args = ArgumentParser()
+args.parseordie()
 
+LogSetup(args).setup()
+
+cmdinterface = GammaCommands(args)
 try:
-	(optlist, args) = getopt.getopt(sys.argv[1:], "d:vp:", [ "help" ])
-except getopt.GetoptError as getopterr:
-	showhelp("Cannot parse options: " + str(getopterr))
-
-parameters = {
-	"device":		"/dev/ttyUSB0",
-	"verbose":		False,
-	"protocol":		"v2",
-}
-for (option, value) in optlist:
-	if option == "-d":
-		parameters["device"] = value
-	elif option == "-v":
-		parameters["verbose"] = True
-	elif option == "-p":
-		value = value.lower()
-		if value not in [ "v1", "v2" ]:
-			syntax("Protocol must be either 'v1' or 'v2'.")
-		parameters["protocol"] = value
-	elif option == "--help":
-		showhelp()
-	else:
-		raise Exception("Programming bug: option '%s' not implemented." % (option))
-
-if len(args) == 0:
-	showhelp("Nothing to do.")
-		
-		
-validargs = set(["identify", "synctime", "syncutctime", "settime", "readlog", "clearlog", "readcfg", "devicereset" ])
-for arg in args:
-	arg = arg.split(":")[0]
-	if arg not in validargs:
-		showhelp("Invalid command '%s'." % (arg))
-
-
-def cmd_identify(conn):
-	version = conn.getversion("PC")
-	if version.get("datetime"):
-		print("Current date and time: %s" % (version["datetime"].strftime("%Y-%m-%d %H:%M:%S")))
-	if version.get("serial"):
-		print("Serial number        : %d" % (version["serial"]))
-	if version.get("version"):
-		print("Software version     : %s" % (version["version"]))
-	if version.get("buffill"):
-		print("Log buffer fill      : %d bytes" % (version["buffill"]))
-
-def cmd_synctime(conn, utctime = False):
-	conn.synctime(utctime)
-
-def cmd_settime(conn, arg):
-	if len(arg) != 1:
-		showhelp("settime command expects 1 argument, %d given." % (len(arg)))
-	try:
-		date = datetime.datetime.strptime(arg[0], "%Y-%m-%d-%H-%M-%S")
-	except ValueError as msg:
-		showhelp("settime format invalid: " + str(msg))
-	conn.settime(date)
-
-def cmd_readlog(conn, arg, parameters):
-	if len(arg) != 2:
-		showhelp("readlog command expects 2 argument, %d given." % (len(arg)))
-	if arg[0] not in [ "txt", "sqlite", "csv", "bin", "xml" ]:
-		showhelp("readlog command expects either 'txt', 'sqlite', 'csv', 'xml' or 'bin' as first argument, %s given." % (arg[0]))
-	(logsize, logdata) = conn.readlog()
-	
-	backend = None
-	if arg[0] == "bin":
-		outfile = open(arg[1], "wb")
-		# Write the log size first as 32-bit integer, little endian
-		outfile.write(struct.pack("<L", logsize))
-		outfile.write(logdata)
-		outfile.close()
-	else:
-		outputbackends = {
-			"txt":		OutputBackends.OutputBackendTXT,
-			"csv":		OutputBackends.OutputBackendCSV,
-			"sqlite":	OutputBackends.OutputBackendSqlite,
-			"xml":		OutputBackends.OutputBackendXML,
-		}
-		backend = outputbackends[arg[0]](arg[1])
-	
-	if backend:
-		handlerclasses = {
-			"v1":		LogDataParserVers1,
-			"v2":		LogDataParserVers2,
-		}
-		handlerclasses[parameters["protocol"]](logdata, backend, parameters["verbose"]).parse(logsize)
-		backend.close()
-
-def cmd_clearlog(conn):
-	conn.clearlog()
-
-def cmd_readcfg(conn, arg):
-	if len(arg) != 1:
-		showhelp("readcfg command expects 1 argument, %d given." % (len(arg)))
-	blob = conn.readconfig()
-	outfile = open(arg[0], "wb")
-	outfile.write(blob)
-	outfile.close()
-
-def cmd_devicereset(conn):
-	conn.devicereset()
-
-handlerclasses = {
-	"v1":		GSConnectionVers1,
-	"v2":		GSConnectionVers2,
-}
-conn = handlerclasses[parameters["protocol"]](parameters["device"], parameters["verbose"])
-try:
-	for arg in args:
-		arg = arg.split(":")
-		if arg[0] == "identify":
-			cmd_identify(conn)
-		elif arg[0] == "synctime":
-			cmd_synctime(conn)
-		elif arg[0] == "syncutctime":
-			cmd_synctime(conn, True)
-		elif arg[0] == "settime":
-			cmd_settime(conn, arg[1 :])
-		elif arg[0] == "readlog":
-			cmd_readlog(conn, arg[1 :], parameters)
-		elif arg[0] == "clearlog":
-			cmd_clearlog(conn)
-		elif arg[0] == "readcfg":
-			cmd_readcfg(conn, arg[1 :])
-		elif arg[0] == "devicereset":
-			cmd_devicereset(conn)
-		else:
-			showhelp("Unknown command '%s'." % (arg))
-except CommunicationError as e:
-	print(str(e), file = sys.stderr)
-	if (e.gettype() == "timeout") and (parameters["protocol"] == "v1"):
-		print("   - Did you maybe forget to put the Gamma Scout into PC mode?", file = sys.stderr)
+	cmdinterface.connect()
+	cmdinterface.execute()
+except CommunicationException as e:
+	print("Communication error: %s" % (str(e)), file = sys.stderr)
+	reasons = [ ]
+	if (e.gettype() == "timeout") and (args["protocol"] == "v1"):
+		reasons.append("Did you maybe forget to put the Gamma Scout into PC mode?")
+	if e.gettype() == "timeout":
+		reasons.append("Is it possible that a modem-manager process interferes with '%s'?" % (args["device"]))
+	if len(reasons) > 0:
+		print("Possible reasons for this:")
+		for reason in reasons:
+			for line in textwrap.wrap(reason, initial_indent = "   - ", subsequent_indent = "     "):
+				print(line, file = sys.stderr)
+except InvalidArgumentException as e:
+	print("Invalid argument: %s" % (str(e)), file = sys.stderr)
 except SystemExit:
 	pass
+except KeyboardInterrupt:
+	print("Interrupted by keyboard, shutting down...")
 except:
 	traceback.print_exc()
 finally:
-	conn.close()
+	cmdinterface.close()
 	sys.exit(0)
-
 

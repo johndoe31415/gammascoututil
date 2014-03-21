@@ -26,11 +26,13 @@ import datetime
 from LogDataParser import LogDataParser
 
 class LogDataParserVers2(LogDataParser):
-	def __init__(self, data, outputbackend, debugmode = False):
-		LogDataParser.__init__(self, data, outputbackend, debugmode)
+	def __init__(self, data, outputbackend):
+		LogDataParser.__init__(self, data, outputbackend)
 
 	def parse(self, length = None):
 		self._offset = 0
+		self._overflow = False
+
 		while (self._offset != len(self._data)) and ((length is None) or (self._offset < length)):
 			peek = self._peekbyte()
 			if peek == 0xf5:
@@ -43,77 +45,84 @@ class LogDataParserVers2(LogDataParser):
 					data = LogDataParser._hexdecify(data)
 					(minute, hour, day, month, year) = data
 					year += 2000
-					self._debug("Set Date: %04d-%02d-%02d %2d:%02d" % (year, month, day, hour, minute))
+					self._log.debug("0x%x: Set Date: %04d-%02d-%02d %2d:%02d" % (self._offset, year, month, day, hour, minute))
 					self._curdate = datetime.datetime(year, month, day, hour, minute)
 				elif peek == 0xee:
 					data = self._nextbytes(5)[1:]
 					gap = ((data[1] << 8) | data[0]) * 10
-					cts = LogDataParser._expcts(data[2 : 4])
-					self._debug("Gap: %d:%02d:%02d, Cts: %d, CPM: %.1f" % (gap // 3600, gap % 3600 // 60, gap % 60, cts, cts / gap * 60))
+					cts = self._expcts(data[2 : 4])
+					self._log.debug("0x%x: Gap: %d:%02d:%02d, Cts: %d, CPM: %.1f" % (self._offset, gap // 3600, gap % 3600 // 60, gap % 60, cts, cts / gap * 60))
 					self._gotcounts(gap, cts)
 				elif peek == 0x0c:
-					self._debug("Interval 10 seconds")
+					self._log.debug("0x%x: Interval 10 seconds" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 10
 				elif peek == 0x0b:
-					self._debug("Interval 30 Seconds")
+					self._log.debug("0x%x: Interval 30 Seconds" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 30
 				elif peek == 0x0a:
-					self._debug("Interval 1 minute")
+					self._log.debug("0x%x: Interval 1 minute" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 60
 				elif peek == 0x09:
-					self._debug("Interval 2 minutes")
+					self._log.debug("0x%x: Interval 2 minutes" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 2 * 60
 				elif peek == 0x08:
-					self._debug("Interval 5 minutes")
+					self._log.debug("0x%x: Interval 5 minutes" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 5 * 60
 				elif peek == 0x07:
-					self._debug("Interval 10 minutes")
+					self._log.debug("0x%x: Interval 10 minutes" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 10 * 60
 				elif peek == 0x06:
-					self._debug("Interval 30 minutes")
+					self._log.debug("0x%x: Interval 30 minutes" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 30 * 60
 				elif peek == 0x05:
-					self._debug("Interval 1 hour")
+					self._log.debug("0x%x: Interval 1 hour" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 1 * 3600
 				elif peek == 0x04:
-					self._debug("Interval 2 hours")
+					self._log.debug("0x%x: Interval 2 hours" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 2 * 3600
 				elif peek == 0x03:
-					self._debug("Interval 12 hours")
+					self._log.debug("0x%x: Interval 12 hours" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 12 * 3600
 				elif peek == 0x02:
-					self._debug("Interval 1 day")
+					self._log.debug("0x%x: Interval 1 day" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 1 * 86400
 				elif peek == 0x01:
-					self._debug("Interval 3 days")
+					self._log.debug("0x%x: Interval 3 days" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 3 * 86400
 				elif peek == 0x00:
-					self._debug("Interval 7 days")
+					self._log.debug("0x%x: Interval 7 days" % (self._offset))
 					self._nextbytes(1)
 					self._interval = 7 * 86400
 				elif peek == 0xf3:
-					self._debug("Unknown command 0xf3")
+					self._log.warn("0x%x: Unknown command 0xf3" % (self._offset))
 					self._nextbytes(1)
 				elif peek == 0xf4:
-					self._debug("Unknown command 0xf4")
+					self._log.warn("0x%x: Unknown command 0xf4" % (self._offset))
 					self._nextbytes(1)
 				else:
-					self._debug("Unknown special (0x%x) at offset 0x%x!" % (peek, self._offset))
+					self._log.error("0x%x: Unknown special 0x%x encountered" % (self._offset, peek))
 					sys.exit(1)
+			
+			elif peek == 0xfa:
+				self._log.warn("0x%x: Next count value is overflowed", self._offset)
+				self._nextbytes(1)
+				self._overflow = True
 
 			else:
-				counts = LogDataParser._expcts(self._nextbytes(2))
-				self._gotcounts(self._interval, counts)
+				counts = self._expcts(self._nextbytes(2))
+				self._gotcounts(self._interval, counts, self._overflow)
+				self._overflow = False
+
 
