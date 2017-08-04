@@ -1,0 +1,73 @@
+#!/usr/bin/python3
+#
+#	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
+#	Copyright (C) 2011-2011 Johannes Bauer
+#	
+#	This file is part of GammaScoutUtil.
+#
+#	GammaScoutUtil is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	GammaScoutUtil is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with GammaScoutUtil; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+#
+
+import sys
+import getopt
+
+from SQLite import SQLite
+
+if len(sys.argv) != 2:
+	print("Usage: %s [SQLite DBFilename]" % (sys.argv[0]), file = sys.stderr)
+	print(file = sys.stderr)
+	print("e.g.: %s gammadb.sqlite" % (sys.argv[0]), file = sys.stderr)
+	sys.exit(1)
+
+db = SQLite(sys.argv[1])
+db.exec_mayfail_commit("""
+	CREATE TABLE dataint(
+		rowcount integer PRIMARY KEY,
+		upto integer NOT NULL UNIQUE,
+		intcounts integer NOT NULL,
+		CHECK(intcounts >= 0)
+	);
+""")
+
+(entries, ) = db.execute("SELECT COUNT(*) FROM dataint;").fetchone()
+if entries == 0:
+	# No integrated log so far
+	(firstdate, ) = db.execute("SELECT MIN(tfrom) FROM data;").fetchone()
+	db.execute("INSERT INTO dataint (upto, intcounts) VALUES (?, 0);", firstdate)
+	db.commit()
+
+(lastdate, ) = db.execute("SELECT MAX(upto) FROM dataint;").fetchone()
+(intcounts, ) = db.execute("SELECT intcounts FROM dataint WHERE upto = ?;", lastdate).fetchone()
+
+entrycount = 0
+newentry = None
+for (counts, tto) in db.execute("SELECT counts, tto FROM data WHERE (tto > ?) ORDER BY tto ASC;", lastdate).fetchall():
+	if newentry is None:
+		newentry = tto
+
+	if tto != newentry:
+		db.execute("INSERT INTO dataint (upto, intcounts) VALUES (?, ?);", newentry, intcounts)
+		newentry = tto
+		entrycount += 1
+		if (entrycount % 1000) == 0:
+			print(newentry, intcounts)
+			db.commit()
+	intcounts += counts
+
+print(newentry, intcounts)
+db.commit()
+

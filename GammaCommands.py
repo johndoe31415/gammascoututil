@@ -189,6 +189,7 @@ class GammaCommands():
 		knowndigests = {
 			"d1e4b979535582f2141dc71a874890e7":		"GS Alert",
 			"e8b467526eff14da69a64fe111c8cb6f":		"GS Online/Rechargable",
+			"e2d8e9ae015ef0851034e23220351efd":		"GS ?",
 		}
 		print("%d bytes of calibration data" % (len(blob)))
 		print("Calibration hash value %s" % (hashvalue))

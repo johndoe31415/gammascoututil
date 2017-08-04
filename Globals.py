@@ -21,7 +21,7 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 #
 
-VERSION = "0.05alpha9 git 4fab7bfced6776596351bb1e7e695d461c466a66"
+VERSION = "GIT Head"
 AUTHOR = "Johannes Bauer"
 AUTHOR_EMAIL = "JohannesBauer@gmx.de"
 AUTHOR_AND_EMAIL = AUTHOR + " <" + AUTHOR_EMAIL + ">"

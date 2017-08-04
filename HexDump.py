@@ -2,7 +2,7 @@
 #
 #	HexDump - Dump data in hex format
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of jpycommon.
 #
 #	jpycommon is free software; you can redistribute it and/or modify
@@ -23,20 +23,21 @@
 #
 #	File UUID 941e5121-2571-4c39-a58b-975600045055
 
-class HexDump():
+class HexDump(object):
 	def __init__(self):
 		self._format = "full"
 		self._width = 16
-		self._spacers = [ 1, 4, 8, 8 ]
+		self._spacers = [ 4, 8, 8 ]
 		self._misschar = " "
-		self._spcchar = " "
 		self._noasciichar = "."
 		self._addr = True
 		self._strrep = True
 		assert(len(self._misschar) == 1)
 		assert(len(self._noasciichar) == 1)
 
-	def _dumpline(self, offset, data):
+	def _dumpline(self, offset, data, markers = None):
+		if markers is None:
+			markers = { }
 		line = ""
 
 		if self._addr:
@@ -44,15 +45,15 @@ class HexDump():
 
 		for charindex in range(self._width):
 			if charindex >= len(data):
-				char = self._misschar * 2
+				char = self._misschar * 3
 			else:
-				char = "%02x" % (data[charindex])
-			
+				char = markers.get(offset + charindex, " ")
+				char += "%02x" % (data[charindex])
+
 			line += char
 			for spacer in self._spacers:
-				if ((charindex + 1) % spacer) == 0:
-					line += self._spcchar
-
+				if ((charindex + 1) % spacer) == 0:					
+					line += " "
 
 		if self._strrep:
 			line += "|"
@@ -69,14 +70,15 @@ class HexDump():
 
 		return line
 
-	def dumpstr(self, data):
-		return [ self._dumpline(i, data[i : i + self._width]) for i in range(0, len(data), self._width) ]
+	def dumpstr(self, data, markers = None):
+		return [ self._dumpline(i, data[i : i + self._width], markers) for i in range(0, len(data), self._width) ]
 
-	def dump(self, data):
-		for line in self.dumpstr(data):
+	def dump(self, data, markers = None):
+		for line in self.dumpstr(data, markers):
 			print(line)
 
 if __name__ == "__main__":
-	data = "Hallo das ist ein cooler Test und hier sehe ich den utf8 Ümläut!".encode("utf-8")
+	mydata = "Hallo das ist ein cooler Test und hier sehe ich den utf8 Ümläut!".encode("utf-8")
 	dumper = HexDump()
-	dumper.dump(data)
+	dumper.dump(mydata)
+
