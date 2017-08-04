@@ -1,0 +1,37 @@
+Summary of changes from v0.03-RC3 to v0.03 (2011-10-26)
+=======================================================
+
+	* Changed error messages a little bit
+
+Summary of changes from v0.03-RC2 to v0.03-RC3 (2011-10-23)
+===========================================================
+
+	* No file is generated when device does not support reading the
+	configuration blob
+	* Time in log now not time_t, but realtive to first message and relative
+	to last message
+	* Increased timeout for Gamma Scout Basic log reading even further
+
+Summary of changes from v0.03-RC1 to v0.03-RC2 (2011-10-23)
+===========================================================
+
+	* Bugfixes in some Gamma Scout Basic response strings (missing spaces at
+	the end of settime/setdate responses)
+	* Increased timeout for log reading on Gamma Scout Basic
+	* Proper error messages when device times out
+
+Summary of changes from v0.02 to v0.03-RC1 (2011-10-14)
+=======================================================
+
+	* Added support for Gamma Scout without Alert (referred to as "Gamma Scout
+	Basic" for disambiguation)
+	* Added very simple simulation data feature for Gamma Scout Basic (data
+	kindly provided by Jörg Wartenberg)
+	* Added XML export functionality
+
+Summary of features of v0.02 (2011-10-02)
+=========================================
+
+	* Support of Gamma Scout W/Alert via USB (FTDI RS232 converter)
+	* Export of data in sqlite, txt, csv or binary format possible
+

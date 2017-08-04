@@ -1,4 +1,27 @@
 #!/usr/bin/python3
+#
+#	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
+#	Copyright (C) 2011-2011 Johannes Bauer
+#	
+#	This file is part of GammaScoutUtil.
+#
+#	GammaScoutUtil is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	GammaScoutUtil is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with GammaScoutUtil; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+#
+
 import sys
 import getopt
 import traceback
@@ -6,17 +29,24 @@ import datetime
 import struct
 
 import OutputBackends
-from GSConnection import GSConnection
-from LogDataParser import LogDataParser
+from GSConnectionBasic import GSConnectionBasic
+from LogDataParserBasic import LogDataParserBasic
+from GSConnectionAlert import GSConnectionAlert
+from LogDataParserAlert import LogDataParserAlert
+from CommunicationError import CommunicationError
 
 def showhelp(msg = None):
 	if msg is not None:
 		print(msg, file = sys.stderr)
 		print(file = sys.stderr)
-	print("%s (-d Device) (-v) [Cmd1] ([Cmd2]) ([Cmd3]) ..." % (sys.argv[0]), file = sys.stderr)
-	print("   -d Device     Specifies the device that the Gamma Scout is", file = sys.stderr)
+	print("%s (-d Device) (-t Type) (-v) [Cmd1] ([Cmd2]) ([Cmd3]) ..." % (sys.argv[0]), file = sys.stderr)
+	print("   -d Device     Specifies the serial device that the Gamma Scout is", file = sys.stderr)
 	print("                 connected to. Default is /dev/ttyUSB0", file = sys.stderr)
+	print("   -t Type       Specifies the device type of Gamma Scout that is", file = sys.stderr)
+	print("                 connected. Either 'basic' or 'alert'. Default is", file = sys.stderr)
+	print("                 'alert'.", file = sys.stderr)
 	print("   -v            Outputs debug information", file = sys.stderr)
+	print("   --help        Displays this help page", file = sys.stderr)
 	print(file = sys.stderr)
 	print("  Commands:", file = sys.stderr)
 	print("     identify", file = sys.stderr)
@@ -26,8 +56,8 @@ def showhelp(msg = None):
 	print("         Synchronizes the time with the current system time", file = sys.stderr)
 	print("     settime:YYYY-MM-DD-HH-MM-SS", file = sys.stderr)
 	print("         Sets the time to the user defined value", file = sys.stderr)
-	print("     readlog:[txt|sqlite|csv|bin]:[Filename]", file = sys.stderr)
-	print("         Reads out Gamma Scout log in text format, sqlite format, CSV", file = sys.stderr)
+	print("     readlog:[txt|sqlite|csv|xml|bin]:[Filename]", file = sys.stderr)
+	print("         Reads out Gamma Scout log in text format, sqlite format, CSV, XML", file = sys.stderr)
 	print("         or binary format and writes the results to the specified filename", file = sys.stderr)
 	print("     clearlog", file = sys.stderr)
 	print("         Deletes the Gamma Scout log", file = sys.stderr)
@@ -39,40 +69,59 @@ def showhelp(msg = None):
 	print("         this operation unless you have a good reason to.", file = sys.stderr)
 	print(file = sys.stderr)
 	print("  Examples:", file = sys.stderr)
+	print("     %s -t basic -d /dev/ttyS0 identify" % (sys.argv[0]), file = sys.stderr)
 	print("     %s -d /dev/ttyUSB3 identify" % (sys.argv[0]), file = sys.stderr)
 	print("     %s readlog:sqlite:/home/joe/foobar.sqlite clearlog" % (sys.argv[0]), file = sys.stderr)
 	sys.exit(1)
 
 try:
-	(optlist, args) = getopt.getopt(sys.argv[1:], "d:v")
+	(optlist, args) = getopt.getopt(sys.argv[1:], "d:vt:", [ "help" ])
 except getopt.GetoptError as getopterr:
 	showhelp("Cannot parse options: " + str(getopterr))
-
-if len(args) == 0:
-	showhelp("Nothing to do.")
 
 parameters = {
 	"device":		"/dev/ttyUSB0",
 	"verbose":		False,
+	"type":			"alert",
 }
 for (option, value) in optlist:
 	if option == "-d":
 		parameters["device"] = value
 	elif option == "-v":
 		parameters["verbose"] = True
+	elif option == "-t":
+		value = value.lower()
+		if value not in [ "basic", "alert" ]:
+			syntax("Type must be either 'basic' or 'alert'.")
+		parameters["type"] = value
+	elif option == "--help":
+		showhelp()
 	else:
 		raise Exception("Programming bug: option '%s' not implemented." % (option))
 
+if len(args) == 0:
+	showhelp("Nothing to do.")
+		
+		
+validargs = set(["identify", "synctime", "settime", "readlog", "clearlog", "readcfg", "devicereset" ])
+for arg in args:
+	arg = arg.split(":")[0]
+	if arg not in validargs:
+		showhelp("Invalid command '%s'." % (arg))
+
+
 def cmd_identify(conn):
-	conn.switchmode("PC")
-	version = conn.getversion()
-	print("Current date and time: %s" % (version["datetime"].strftime("%Y-%m-%d %H:%M:%S")))
-	print("Serial number        : %d" % (version["serial"]))
-	print("Software version     : %s" % (version["version"]))
-	print("Log buffer fill      : %d bytes" % (version["buffill"]))
+	version = conn.getversion("PC")
+	if version.get("datetime"):
+		print("Current date and time: %s" % (version["datetime"].strftime("%Y-%m-%d %H:%M:%S")))
+	if version.get("serial"):
+		print("Serial number        : %d" % (version["serial"]))
+	if version.get("version"):
+		print("Software version     : %s" % (version["version"]))
+	if version.get("buffill"):
+		print("Log buffer fill      : %d bytes" % (version["buffill"]))
 
 def cmd_synctime(conn):
-	conn.switchmode("PC")
 	conn.synctime()
 
 def cmd_settime(conn, arg):
@@ -82,14 +131,13 @@ def cmd_settime(conn, arg):
 		date = datetime.datetime.strptime(arg[0], "%Y-%m-%d-%H-%M-%S")
 	except ValueError as msg:
 		showhelp("settime format invalid: " + str(msg))
-	conn.switchmode("PC")
 	conn.settime(date)
 
 def cmd_readlog(conn, arg, parameters):
 	if len(arg) != 2:
 		showhelp("readlog command expects 2 argument, %d given." % (len(arg)))
-	if arg[0] not in [ "txt", "sqlite", "csv", "bin" ]:
-		showhelp("readlog command expects either 'txt', 'sqlite', 'csv' or 'bin' as first argument, %s given." % (arg[0]))
+	if arg[0] not in [ "txt", "sqlite", "csv", "bin", "xml" ]:
+		showhelp("readlog command expects either 'txt', 'sqlite', 'csv', 'xml' or 'bin' as first argument, %s given." % (arg[0]))
 	(logsize, logdata) = conn.readlog()
 	
 	backend = None
@@ -99,15 +147,21 @@ def cmd_readlog(conn, arg, parameters):
 		outfile.write(struct.pack("<L", logsize))
 		outfile.write(logdata)
 		outfile.close()
-	elif arg[0] == "txt":
-		backend = OutputBackends.OutputBackendTXT(arg[1])
-	elif arg[0] == "csv":
-		backend = OutputBackends.OutputBackendCSV(arg[1])
-	elif arg[0] == "sqlite":
-		backend = OutputBackends.OutputBackendSqlite(arg[1])
+	else:
+		outputbackends = {
+			"txt":		OutputBackends.OutputBackendTXT,
+			"csv":		OutputBackends.OutputBackendCSV,
+			"sqlite":	OutputBackends.OutputBackendSqlite,
+			"xml":		OutputBackends.OutputBackendXML,
+		}
+		backend = outputbackends[arg[0]](arg[1])
 	
 	if backend:
-		LogDataParser(logdata, backend, parameters["verbose"]).parse(logsize)
+		handlerclasses = {
+			"basic":		LogDataParserBasic,
+			"alert":		LogDataParserAlert,
+		}
+		handlerclasses[parameters["type"]](logdata, backend, parameters["verbose"]).parse(logsize)
 		backend.close()
 
 def cmd_clearlog(conn):
@@ -116,15 +170,19 @@ def cmd_clearlog(conn):
 def cmd_readcfg(conn, arg):
 	if len(arg) != 1:
 		showhelp("readcfg command expects 1 argument, %d given." % (len(arg)))
-	outfile = open(arg[0], "wb")
 	blob = conn.readconfig()
+	outfile = open(arg[0], "wb")
 	outfile.write(blob)
 	outfile.close()
 
-def cmd_devicereset(conn, arg):
+def cmd_devicereset(conn):
 	conn.devicereset()
 
-conn = GSConnection(parameters["device"], parameters["verbose"])
+handlerclasses = {
+	"basic":		GSConnectionBasic,
+	"alert":		GSConnectionAlert,
+}
+conn = handlerclasses[parameters["type"]](parameters["device"], parameters["verbose"])
 try:
 	for arg in args:
 		arg = arg.split(":")
@@ -144,10 +202,15 @@ try:
 			cmd_devicereset(conn)
 		else:
 			showhelp("Unknown command '%s'." % (arg))
-#except:
-#	traceback.print_exc()
+except CommunicationError as e:
+	print(str(e), file = sys.stderr)
+	if (e.gettype() == "timeout") and (parameters["type"] == "basic"):
+		print("   - Did you maybe forget to put the Gamma Scout into PC mode?", file = sys.stderr)
+except SystemExit:
+	pass
+except:
+	traceback.print_exc()
 finally:
-	conn.switchmode("Standard")
 	conn.close()
 	sys.exit(0)
 

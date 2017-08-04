@@ -21,6 +21,7 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 #
 
+import sys
 import csv
 from SQLite import SQLite
 
@@ -39,12 +40,12 @@ class OutputBackendCSV(OutputBackend):
 		OutputBackend.__init__(self, filename)
 		self._f = open(filename, "w")
 		self._csv = csv.writer(self._f)
-		self._csv.writerow(["From", "To", "Counts", "Seconds", "CPM", "µSv/h"])
+		self._csv.writerow(["From", "To", "Counts", "Seconds", "CPM", "CPS"])
 	
 	def newinterval(self, fromtime, totime, counts):
 		delta = (totime - fromtime)
 		totalseconds = delta.days * 86400 + delta.seconds
-		self._csv.writerow([ fromtime.strftime("%Y-%m-%d %H:%M:%S"), totime.strftime("%Y-%m-%d %H:%M:%S"), counts, totalseconds, 60 * counts / totalseconds, 60 * counts / totalseconds / 142 ])
+		self._csv.writerow([ fromtime.strftime("%Y-%m-%d %H:%M:%S"), totime.strftime("%Y-%m-%d %H:%M:%S"), counts, totalseconds, 60 * counts / totalseconds, counts / totalseconds ])
 	
 	def close(self):
 		self._f.close()
@@ -52,16 +53,38 @@ class OutputBackendCSV(OutputBackend):
 class OutputBackendTXT(OutputBackend):
 	def __init__(self, filename):
 		OutputBackend.__init__(self, filename)
-		self._f = open(filename, "w")
-		print("%-20s   %-20s  %5s %5s   %4s   %5s" % ("From", "To", "Counts", "Seconds", "CPM", "µSv/h"), file = self._f)
+		self._closeonexit = True
+		if filename == "-":
+			self._f = sys.stdout
+			self._closeonexit = False
+		else:
+			self._f = open(filename, "w")
+		print("%-20s   %-20s   %6s  %6s   %4s   %5s" % ("From", "To", "Counts", "Seconds", "CPM", "CPS"), file = self._f)
 		print("-" * 80, file = self._f)
 	
 	def newinterval(self, fromtime, totime, counts):
 		delta = (totime - fromtime)
 		totalseconds = delta.days * 86400 + delta.seconds
-		print("%-20s   %-20s   %5d   %5d   %4.1f   %5.3f" % (fromtime.strftime("%Y-%m-%d %H:%M:%S"), totime.strftime("%Y-%m-%d %H:%M:%S"), counts, totalseconds, 60 * counts / totalseconds, 60 * counts / totalseconds / 142), file = self._f)
+		print("%-20s   %-20s   %6d   %6d   %4.1f   %5.3f" % (fromtime.strftime("%Y-%m-%d %H:%M:%S"), totime.strftime("%Y-%m-%d %H:%M:%S"), counts, totalseconds, 60 * counts / totalseconds, counts / totalseconds), file = self._f)
 	
 	def close(self):
+		if self._closeonexit:
+			self._f.close()
+
+class OutputBackendXML(OutputBackend):
+	def __init__(self, filename):
+		OutputBackend.__init__(self, filename)
+		self._f = open(filename, "w")
+		print("<?xml version=\"1.0\" encoding=\"utf-8\" ?>", file = self._f)
+		print("<gammascout>", file = self._f)
+	
+	def newinterval(self, fromtime, totime, counts):
+		delta = (totime - fromtime)
+		totalseconds = delta.days * 86400 + delta.seconds
+		print("	<interval from=\"%s\" to=\"%s\" counts=\"%d\" />" % (fromtime.strftime("%Y-%m-%dT%H:%M:%S"), totime.strftime("%Y-%m-%dT%H:%M:%S"), counts), file = self._f)
+	
+	def close(self):
+		print("</gammascout>", file = self._f)
 		self._f.close()
 
 class OutputBackendSqlite(OutputBackend):
