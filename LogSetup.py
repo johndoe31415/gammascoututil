@@ -1,6 +1,6 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
-#	Copyright (C) 2011-2011 Johannes Bauer
+#	Copyright (C) 2011-2013 Johannes Bauer
 #	
 #	This file is part of GammaScoutUtil.
 #
@@ -21,26 +21,33 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 #
 
-class CommunicationError(Exception):
-	_errtypes = set([
-		"timeout",			# Communication timeout
-		"unparsable",		# Unexpected answer
-		"feature",			# Missing feature of some sort
-	])
+import logging
 
-	def __init__(self, errtype, errmsg):
-		Exception.__init__(self, errmsg)
-		if errtype not in CommunicationError._errtypes:
-			raise Exception("Unknown errortype '%s'." % (errtyp))
-		self._errtype = errtype
-		self._errmsg = errmsg
-	
-	def gettype(self):
-		return self._errtype
+class LogSetup():
+	_global_level = {
+		0:	logging.ERROR,
+		1:	logging.WARN,
+		2:	logging.INFO,
+		3:	logging.DEBUG,
+	}
 
-	def getmsg(self):
-		return self._errmsg
+	def __init__(self, args):
+		self._args = args
 
-	def __str__(self):
-		return "Communication failure (%s): %s" % (self.gettype(), self.getmsg())
+	def _getloglevel(self):
+		lvl = self._args["verbose"]
+		if lvl >= 3:
+			lvl = 3
+		return lvl
+
+	def setup(self):
+		lvl = self._getloglevel()
+		handler = logging.StreamHandler()
+		handler.setLevel(LogSetup._global_level[lvl])
+		handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+
+		facility = logging.getLogger("gsu")
+		facility.addHandler(handler)
+		facility.setLevel(logging.DEBUG)
+			
 

@@ -1,3 +1,34 @@
+Summary of changes from v0.04 to v0.05 (2013-xx-xx)
+===================================================
+
+	* Major refactoring of communication infrastructure code, protocol
+	handlers, command parsing and execution in order to allow simulation of
+	Gamma Scouts without having devices to test (important for dev) and for
+	easier integration of new devices (e.g. Gamma Scout Online)
+	* Simulation tool to emulate Gamma Scout on a Unix socket for testing and
+	refactoring of code without access to a real device
+	* Support of the Gamma Scout Online
+	* Conversion of CPS to uSv according to official calibration ("Toolbox") curves
+	* Inclusion of version within help
+	* Binary output file format modified, added capability of reading back
+	binary dumps
+	* Added capability to only switch Gamma Scout mode without performing any
+	other actions
+	* Filenames now support strftime substitutions
+	* SQL output backend support
+	* Text file output is now always UTF-8, console output is tried as the
+	local encoding (and fallback to ASCII used if this doesn't work out).
+	Fixes a bug where GSU would terminate if an ASCII locale was selected
+	* MySQL backend included (using PyMySQL); still somewhat experimental (the
+	available Python binding libraries for MySQL/Py3k are rather crappy at the
+	moment)
+	* GammaPlot now included for plotting recorded database data using
+	Matplotlib
+	* Bugfix in TXT output backend (CPS and CPM are swithced)
+	* Bugfix when count values overflow (thanks to Erik Berglund for reporting
+	this)
+
+
 Summary of changes from v0.03 to v0.04 (2012-01-06)
 ===================================================
 
