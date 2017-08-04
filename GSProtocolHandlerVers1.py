@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -48,7 +48,7 @@ class GSProtocolHandlerVers1(GSProtocolHandler):
 		command = "d%02d%02d%02d" % (timestamp.day, timestamp.month, timestamp.year - 2000)
 		self._conn.writeslow(command)
 		self._conn.expectresponse(" Datum gestellt ")
-		
+
 		command = "u%02d%02d%02d" % (timestamp.hour, timestamp.minute, timestamp.second)
 		self._conn.writeslow(command)
 		self._conn.expectresponse(" Zeit gestellt ")
@@ -79,7 +79,7 @@ class GSProtocolHandlerVers1(GSProtocolHandler):
 	def readlog(self):
 		self._conn.write("b")
 		self._conn.expectresponse(" GAMMA-SCOUT Protokoll ")
-	
+
 		log = [ ]
 		linecnt = 0
 		while True:
@@ -101,10 +101,10 @@ class GSProtocolHandlerVers1(GSProtocolHandler):
 	def clearlog(self):
 		self._conn.write("z")
 		self._conn.expectresponse(" Protokollspeicher wieder frei ")
-	
+
 	def devicereset(self):
 		self._conn.write("i")
-	
+
 	def readconfig(self):
 		raise CommunicationException("feature", "Gamma Scout Basic does not support reading configuration block.")
 

@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -47,7 +47,7 @@ def typecheck(wrappedfunction):
 				raise InputParameterException("Argument '%s' must be one of the valid types %s, but is of type %s." % (argname, str(allowedtypes), str(type(argvalue))))
 		else:
 			# Only one type is allowed
-			allowedtype = allowedtypes		
+			allowedtype = allowedtypes
 			if not isinstance(argvalue, allowedtype):
 				raise InputParameterException("Argument '%s' must be of type %s, but is of type %s." % (argname, str(allowedtype), str(type(argvalue))))
 
@@ -68,7 +68,7 @@ def typecheck(wrappedfunction):
 		if argspec.annotations.get("return") is not None:
 			checkparameter("return", returnvalue, argspec.annotations.get("return"))
 
-		return returnvalue	
+		return returnvalue
 
 	functools.update_wrapper(typecheckwrapper, wrappedfunction)
 	return typecheckwrapper

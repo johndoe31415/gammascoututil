@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify

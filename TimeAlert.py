@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -28,7 +28,7 @@ class TimeAlert():
 		self._trigger = None
 		self._interval = None
 		self.setinterval(interval)
-	
+
 	def setinterval(self, interval):
 		self._interval = interval
 		self.reset()
@@ -38,7 +38,7 @@ class TimeAlert():
 
 	def triggered(self):
 		return time.time() > self._trigger
-	
+
 	def triggeredreset(self):
 		"""Check if alarm has triggered and if so, reset it."""
 		result = self.triggered()

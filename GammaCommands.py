@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -89,7 +89,7 @@ class GammaCommands():
 
 	def _cmd_synctime(self):
 		self._device.settime(datetime.datetime.now())
-	
+
 	def _cmd_syncutctime(self):
 		self._device.settime(datetime.datetime.utcnow())
 
@@ -120,20 +120,20 @@ class GammaCommands():
 		if outformat not in accepted_formats:
 			raise InvalidArgumentException("'readlog' command expects one of %s as file format, but '%s' given." % (", ".join(sorted(list(accepted_formats))), outformat))
 		(logsize, logdata) = self._getrawlog(infilename)
-					
+
 		backendclass = OutputBackends.getbackendbyname(outformat)
 		backend = backendclass(filename, self._args)
-		backend.initdata(logsize, logdata)	
+		backend.initdata(logsize, logdata)
 		parserclass = {
 			"v1":		LogDataParserVers1,
 			"v2":		LogDataParserVers2,
 		}[self._args["protocol"]]
 		parserclass(logdata, backend).parse(logsize)
 		backend.close()
-	
+
 	def _cmd_readlog(self, outformat, filename):
 		self._cmd_readbinlog(None, outformat, filename)
-	
+
 	def _cmd_clearlog(self):
 		self._device.clearlog()
 
@@ -148,7 +148,7 @@ class GammaCommands():
 			raise InvalidArgumentException("Will NOT execute device reset (--force wasn't specified).")
 		else:
 			self._device.devicereset()
-	
+
 	def _cmd_online(self, interval, outformat, filename):
 		interval = int(interval)
 		accepted_formats = set([ "txt", "csv", "sql" ])
@@ -169,12 +169,12 @@ class GammaCommands():
 
 			fromts = reading.utctimestamp - datetime.timedelta(0, reading.interval)
 			backend.newinterval(fromts, reading.utctimestamp, reading.counts)
-				
+
 			if reading.interval != interval:
 				# Gamma Scout decided to switch intervals on its own, bring it
 				# back on track
 				self._device.setonlineinterval(intervalcode)
-	
+
 	def _cmd_switchmode(self, mode):
 		mode = mode.lower()
 		if mode not in GSProtocolHandler.VALID_MODES:
@@ -182,7 +182,7 @@ class GammaCommands():
 		self._device.switchmode(mode)
 		self._log.info("Shutting down after mode switch")
 		sys.exit(0)
-	
+
 	def _cmd_devidentify(self):
 		blob = self._device.readconfig()
 		hashvalue = hashlib.md5(blob).hexdigest()
@@ -194,7 +194,7 @@ class GammaCommands():
 		print("%d bytes of calibration data" % (len(blob)))
 		print("Calibration hash value %s" % (hashvalue))
 		HexDump().dump(blob)
-		if hashvalue in knowndigests:			
+		if hashvalue in knowndigests:
 			print("Your device has a known calibration value, it registers as a %s" % (knowndigests[hashvalue]))
 		else:
 			print("Your device has an unknown calibration value, please mail this whole output to %s" % (Globals.AUTHOR_AND_EMAIL))

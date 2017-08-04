@@ -52,7 +52,7 @@ class HexDump(object):
 
 			line += char
 			for spacer in self._spacers:
-				if ((charindex + 1) % spacer) == 0:					
+				if ((charindex + 1) % spacer) == 0:
 					line += " "
 
 		if self._strrep:

@@ -2,7 +2,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -48,7 +48,7 @@ class DataSource():
 	def integrate(self, fromtimestamp = None, totimestamp = None):
 		(xfrom, xto, cts) = self.get(fromtimestamp, totimestamp)
 		return sum(cts)
-		
+
 
 class DatabaseDataSource(DataSource):
 	def __init__(self, parameters):
@@ -68,7 +68,7 @@ class DatabaseDataSource(DataSource):
 
 		# Parse "from" and "to" from strings to datetime.datetime objects
 		xfrom = [ datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S") for (x, y, z) in points ]
-		xto = [ datetime.datetime.strptime(y, "%Y-%m-%d %H:%M:%S") for (x, y, z) in points ]		
+		xto = [ datetime.datetime.strptime(y, "%Y-%m-%d %H:%M:%S") for (x, y, z) in points ]
 		cts = [ z for (x, y, z) in points ]
 		t.finish()
 		return (xfrom, xto, cts)
@@ -111,21 +111,21 @@ class DataAcquisition():
 		# Integrate Y-values
 		yvalues = numpy.array([ 0 ] + self._cts).cumsum()
 
-		new_xvalues = numpy.linspace(xvalues[0], xvalues[-1], bincount + 1)		
+		new_xvalues = numpy.linspace(xvalues[0], xvalues[-1], bincount + 1)
 		new_binwidth = self.gettimerangesecs() / bincount
 		print("Rebinning to binwidth of %.1f sec and %d bins" % (new_binwidth, bincount))
 		ecdf = numpy.interp(new_xvalues, xvalues, yvalues)
-		
+
 		binyvalues = numpy.diff(ecdf)
 		binyvalues /= new_binwidth
-		
+
 		binxvalues = new_xvalues[: - 1]
 		binxvalues += (new_binwidth // 2)
 		binxvalues = [ DateTimeUtil.timet_to_datetimeutc(x) for x in binxvalues ]
 		t.finish()
 
 		return (binxvalues, binyvalues, new_binwidth)
-	
+
 	def rebintime(self, binseconds = 3600):
 		bincount = self.gettimerangesecs() / binseconds
 		return self.rebin(bincount)
@@ -163,7 +163,7 @@ class DataAcquisition():
 
 	def gettimerange(self):
 		return self.getlasttimestamp() - self.getfirsttimestamp()
-	
+
 	def gettimerangesecs(self):
 		return DateTimeUtil.deltatosecs(self.gettimerange())
 

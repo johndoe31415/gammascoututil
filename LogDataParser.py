@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -41,12 +41,12 @@ class LogDataParser():
 
 	def _peekbyte(self):
 		return self._data[self._offset]
-	
+
 	def _nextbytes(self, length):
 		o = self._offset
 		self._offset += length
 		return self._data[o : o + length]
-	
+
 	def _gotcounts(self, timesecs, counts, overflow = False):
 		if timesecs is None:
 			self._log.warn("0x%x: Got no timesecs, but %d counts, ignoring (overflow = %s)." % (self._offset, counts, overflow))

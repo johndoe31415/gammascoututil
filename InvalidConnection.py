@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@ from Exceptions import CommunicationException
 class InvalidConnection(GSConnection):
 	def __init__(self, args):
 		GSConnection.__init__(self, args)
-	
+
 	def write(self, data):
 		raise CommunicationException("feature", "This command is not possible with the --nodevice parameter set.")
 

@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -114,7 +114,7 @@ class LogDataParserVers2(LogDataParser):
 				else:
 					self._log.error("0x%x: Unknown special 0x%x encountered" % (self._offset, peek))
 					sys.exit(1)
-			
+
 			elif peek == 0xfa:
 				self._log.warn("0x%x: Next count value is overflowed", self._offset)
 				self._nextbytes(1)

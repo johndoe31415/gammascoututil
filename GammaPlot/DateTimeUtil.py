@@ -2,7 +2,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 #
 
 import time
-import calendar 
+import calendar
 import datetime
 
 class DateTimeUtil():
@@ -32,7 +32,7 @@ class DateTimeUtil():
 
 	def datetimeutc_to_timet(timestamp):
 		return calendar.timegm(timestamp.timetuple())
-	
+
 	def timet_to_datetimeutc(timet):
 		return datetime.datetime.utcfromtimestamp(timet)
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 	assert(DateTimeUtil.timet_to_datetimeutc(0) == datetime.datetime(1970, 1, 1, 0, 0, 0))
 	assert(DateTimeUtil.timet_to_datetimeutc(3600) == datetime.datetime(1970, 1, 1, 1, 0, 0))
 	assert(DateTimeUtil.timet_to_datetimeutc(45296) == datetime.datetime(1970, 1, 1, 12, 34, 56))
-	
+
 	assert(int(DateTimeUtil.datetimeutc_to_timet(datetime.datetime(1970, 1, 1, 0, 0, 0))) == 0)
 	assert(int(DateTimeUtil.datetimeutc_to_timet(datetime.datetime(1970, 1, 1, 1, 0, 0))) == 3600)
 	assert(int(DateTimeUtil.datetimeutc_to_timet(datetime.datetime(1970, 1, 1, 12, 34, 56))) == 45296)

@@ -26,7 +26,7 @@ class SimulationLogFile(object):
 		self._filename = filename
 		f = open(self._filename, "rb")
 		data = f.read()
-		
+
 		idx = data.find(0)
 		self._infotext = data[:idx].decode("utf-8")
 		data = data[idx + 1:]
@@ -70,7 +70,7 @@ class SimModel(object):
 		self._timeoffset = datetime.timedelta(0)
 		self._onlineintvl = 0
 		self._onlinetime = TimeAlert()
-	
+
 	def command(self, connhandlerthread):
 		while True:
 			result = self.wait_command(connhandlerthread)
@@ -91,7 +91,7 @@ class SimModel(object):
 		cmd = connhandlerthread.waitforbytes(1, 1.0)
 		if cmd is None:
 			return
-		
+
 		print("<-", cmd)
 		response = [ "" ]
 		unknowncmd = False
@@ -99,7 +99,7 @@ class SimModel(object):
 		if self._mode == GSProtocolHandler.MODE_PC:
 			if self._args.protocol == "v2":
 				if cmd == "v":
-					datestr = (datetime.datetime.utcnow() + self._timeoffset).strftime("%d.%m.%y %H:%M:%S")				
+					datestr = (datetime.datetime.utcnow() + self._timeoffset).strftime("%d.%m.%y %H:%M:%S")
 					response.append("Version 6.05 032123 %04x %s" % (self._logfile.buffill, datestr))
 				elif cmd == "z":
 					response.append("Protokollspeicher wieder frei")
@@ -196,19 +196,19 @@ class SimModel(object):
 				response = [ ]
 			else:
 				unknowncmd = True
-	
+
 		if unknowncmd:
 			print("Not understood command: '%s' in mode %s with model %s" % (cmd, self._mode, self._args.model))
 			response = [ ]
 
 		return response
-	
+
 class ConnectionHandlerThread(threading.Thread):
 	def __init__(self, conn, model):
 		threading.Thread.__init__(self)
 		self._model = model
 		self._conn = conn
-		
+
 		self._rxbuf = RXBuffer()
 		self._readerthread = SocketReaderThread(self._conn, self._rxbuf.push, self._rxbuf.seteof)
 
@@ -235,7 +235,7 @@ class Simulator():
 		self._args = args
 		self._socket = None
 		self._model = SimModel(args)
-	
+
 	def _bindsocket(self):
 		self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		try:
@@ -253,7 +253,7 @@ class Simulator():
 	def simulate(self):
 		self._bindsocket()
 		print("Now simulating Gamma Scout model '%s' using protocol version %s on UNIX socket '%s'" % (self._args.model, self._args.protocol, self._args.socket))
-		
+
 		while True:
 			(conn, addr) = self._socket.accept()
 			self._handle(conn)

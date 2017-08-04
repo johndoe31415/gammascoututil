@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -38,7 +38,7 @@ class RS232Connection(GSConnection):
 		self._conn = serial.Serial(args["device"], baudrate = baudrate, bytesize = 7, parity = "E", stopbits = 1, timeout = 0.1)
 		self._rxthread = RS232ReaderThread(self._conn, self._rxbuf.push)
 		self._rxthread.start()
-	
+
 	def write(self, data):
 		data = data.encode("utf-8")
 		self._log.debug("TX %d -> %s" % (len(data), str(data)[1:]))

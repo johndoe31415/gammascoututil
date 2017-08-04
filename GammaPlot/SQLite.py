@@ -2,7 +2,7 @@
 #
 #	SQLite - Simple SQLite3 abstraction.
 #	Copyright (C) 2011-2012 Johannes Bauer
-#	
+#
 #	This file is part of jpycommon.
 #
 #	jpycommon is free software; you can redistribute it and/or modify
@@ -58,7 +58,7 @@ class SQLite(object):
 
 	def commit(self):
 		self._conn.commit()
-	
+
 	def fetchmany(self, howmany = 500):
 		return self._cursor.fetchmany(size = howmany)
 

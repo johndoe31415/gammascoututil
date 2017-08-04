@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -63,7 +63,7 @@ class RS232ReaderThread(threading.Thread):
 		self._rxcallback = rxcallback
 		self._closecallback = closecallback
 		self._quit = False
-	
+
 	def _rxdata(self, data):
 		self._log.debug("RX %d <- %s" % (len(data), str(data)[1:]))
 		self._rxcallback(data)

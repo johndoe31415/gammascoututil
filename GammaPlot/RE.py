@@ -2,7 +2,7 @@
 #
 #	RE - Simple regular expression access object.
 #	Copyright (C) 2011-2012 Johannes Bauer
-#	
+#
 #	This file is part of jpycommon.
 #
 #	jpycommon is free software; you can redistribute it and/or modify
@@ -32,10 +32,10 @@ class RE():
 	FLOAT = DECIMAL + "(?:\\.[0-9]*)?"
 	HEXADECIMAL = "(?:0[xX])?[0-9a-fA-F]+"
 	ANYNUMBER = "(?:0[xXbo])?[0-9a-fA-F]+"
-	IP = DECIMAL + "\\." + DECIMAL + "\\." + DECIMAL + "\\." + DECIMAL 
+	IP = DECIMAL + "\\." + DECIMAL + "\\." + DECIMAL + "\\." + DECIMAL
 	STRING = "[^ ]+"
 	IDENTIFIER = "[a-zA-Z0-9-_]+"
-	
+
 	GFLOAT = "(" + FLOAT + ")"
 	GDECIMAL = "(" + DECIMAL + ")"
 	GHEXADECIMAL = "(?:0[xX])?([0-9a-fA-F]+)"
@@ -64,7 +64,7 @@ class RE():
 				text = text[result.end() : ]
 			else:
 				break
-	
+
 	def replaceall(self, text, replacement):
 		finding = self.search(text)
 		while finding is not None:
@@ -94,10 +94,10 @@ class RE():
 
 	def start(self):
 		return self._result.start()
-	
+
 	def end(self):
 		return self._result.end()
-	
+
 	def groupdict(self):
 		return self._result.groupdict()
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 	assert(RE(RE.GFLOAT).match("-1.2345")[1] == "-1.2345")
 	assert(RE(RE.GESCQUOTE).match("\"hallo das ist ja sehr cool\"")[1] == "hallo das ist ja sehr cool")
 	assert(RE(RE.GESCQUOTE).match("\"hallo das \\\"ist ja sehr cool\"")[1] == "hallo das \\\"ist ja sehr cool")
-	
+
 	r = RE("foo([0-9]+)")
 	pattern = "das hier foo93893 ist ein foo1 test foo123 und das hier foo9913 auch"
 	for finding in r.searchall(pattern):
@@ -124,6 +124,6 @@ if __name__ == "__main__":
 	pattern = "das hier foo93893 ist ein foo1 test foo123 und das hier foo9913 auch"
 	output = r.replaceall(pattern, "replacement")
 	print(output)
-	
+
 	output = r.replaceall(pattern, lambda x: "bar%smoo" % (x[1]))
 	print(output)

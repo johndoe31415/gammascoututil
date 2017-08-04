@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -54,13 +54,13 @@ class IntParser():
 
 		if not parsedvalue:
 			raise CmdLineParseException("Supplied value '%s' for option %s cannot be parsed as integer." % (value, str(option)))
-		
+
 		if (self._minval is not None) and (parsedvalue < self._minval):
 			raise CmdLineParseException("Supplied value %d for option %s is less than the minimum value %d." % (parsedvalue, str(option), self._minval))
-		
+
 		if (self._maxval is not None) and (parsedvalue > self._maxval):
 			raise CmdLineParseException("Supplied value %d for option %s is more than the maximum value %d." % (parsedvalue, str(option), self._maxval))
-	
+
 		return parsedvalue
 
 
@@ -82,7 +82,7 @@ class DateTimeParser():
 					break
 				except ValueError:
 					pass
-		
+
 		if not parsedvalue:
 			raise CmdLineParseException("Supplied value '%s' for option %s cannot be parsed as datetime." % (value, str(option)))
 
@@ -113,7 +113,7 @@ class ExtendedDateTimeParser(DateTimeParser):
 		elif unit in "MY":
 			if unit == "Y":
 				amount *= 12
-			
+
 			fullyears = amount // 12
 			months = amount % 12
 
@@ -138,7 +138,7 @@ class ExtendedDateTimeParser(DateTimeParser):
 	def parse(self, value: str, option):
 		datefmt = "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
 		accepted_special_format = RE("(now|" + datefmt + ")(?:([+-])([0-9]+)([mhdwMY]))$")
-		
+
 		# First check if it's a special case
 		if accepted_special_format.match(value):
 			# Parse base point first
@@ -155,7 +155,7 @@ class ExtendedDateTimeParser(DateTimeParser):
 class TimeIntervalParser():
 	@typecheck
 	def parse(self, value: str, option):
-		accepted_format = RE("([0-9]+)([smhdw])$")		# Secs, Mins, Hours, Days, Weeks		
+		accepted_format = RE("([0-9]+)([smhdw])$")		# Secs, Mins, Hours, Days, Weeks
 		if accepted_format.match(value):
 			multiplier = {
 				"s":	1,
@@ -210,7 +210,7 @@ class CmdLineOption():
 			raise CmdLineParseException("Option %s should occur at least %d times, but did only occur %d times." % (str(self), self._minoccurences, self._occurences))
 		if (self._maxoccurences is not None) and (self._occurences > self._maxoccurences):
 			raise CmdLineParseException("Option %s may occur at most %d times, but did occur %d times." % (str(self), self._maxoccurences, self._occurences))
-		
+
 	@typecheck
 	def setdescription(self, description: str):
 		self._description = description
@@ -228,11 +228,11 @@ class CmdLineOption():
 		self._minoccurences = minoccurences
 		self._maxoccurences = maxoccurences
 		return self
-	
+
 	@typecheck
 	def setoccurence(self, occurences: int):
 		return self.setminmaxoccurence(occurences, occurences)
-	
+
 	@typecheck
 	def settakesparameters(self, takesparameters: bool, parametername: (str, None)):
 		assert(takesparameters == (parametername is not None))
@@ -246,14 +246,14 @@ class CmdLineOption():
 
 	def getshortopt(self) -> (None, str):
 		return self._shortopt
-	
+
 	def getlongopt(self) -> (None, str):
 		return self._longopt
 
 	@typecheck
 	def getminoccurences(self) -> int:
 		return self._minoccurences
-	
+
 	@typecheck
 	def getmaxoccurences(self) -> (int, None):
 		return self._maxoccurences
@@ -272,7 +272,7 @@ class CmdLineOption():
 	@typecheck
 	def getdescription(self) -> str:
 		return self._description
-	
+
 	@typecheck
 	def getdefaultvalue(self) -> (str, None):
 		return self._defaultvalue
@@ -323,20 +323,20 @@ class CmdLineParser():
 		# Make sure names of options are unique
 		assert(option.getname() not in self._optionsanitychecks["names"])
 		self._optionsanitychecks["names"].add(option.getname())
-		
+
 		# Make sure short options are unique
 		if option.getshortopt() is not None:
 			assert(option.getshortopt() not in self._optionsanitychecks["shortopts"])
 			self._optionsanitychecks["shortopts"].add(option.getshortopt())
-		
+
 		# Make sure long options are unique
 		if option.getlongopt() is not None:
 			assert(option.getlongopt() not in self._optionsanitychecks["longopts"])
 			self._optionsanitychecks["longopts"].add(option.getlongopt())
-		
+
 		self._options.append(option)
 		return self
-	
+
 	def _equallistsize(list1, list2):
 		if len(list1) < len(list2):
 			list1 += [ "" ] * (len(list2) - len(list1))
@@ -349,7 +349,7 @@ class CmdLineParser():
 		firstline = sys.argv[0] + " "
 		for option in self._options:
 			firstline += option.getusagestr().replace(" ", nbsp) + " "
-	
+
 		# Then wrap
 		for line in textwrap.wrap(firstline, 80, subsequent_indent = "    "):
 			print(line.replace(nbsp, " "), file = sys.stderr)
@@ -393,7 +393,7 @@ class CmdLineParser():
 					longparse.append(option.getlongopt())
 				else:
 					longparse.append(option.getlongopt() + "=")
-				
+
 				self._optiondict["--" + option.getlongopt()] = option
 		return (shortparse, longparse)
 
@@ -493,27 +493,27 @@ if __name__ == "__main__":
 	o = CmdLineOption("integer", "i", "integer").setdescription("This is an integral option with a quite long descriptive text that takes values between 100 and 200 blah blah blah Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.")
 	o.setminmaxoccurence(0, 2).settakesparameters(True, "val").setparser(IntParser(100, 200))
 	c.addoption(o)
-	
+
 	o = CmdLineOption("otherinteger", "o", None).setdescription("This is an integral option with a quite long descriptive text that takes values between 100 and 200")
 	o.setminmaxoccurence(0, 2).settakesparameters(True, "int").setparser(IntParser(100, 200))
 	c.addoption(o)
-	
+
 	o = CmdLineOption("birthdate", "d", "birthdate").setdescription("This is some datetime option")
 	o.setminmaxoccurence(0, 1).settakesparameters(True, "birth").setparser(DateTimeParser())
 	c.addoption(o)
-	
+
 	o = CmdLineOption("protocol", "p", "protocol").setdescription("This is a protocol definition of some kind")
 	o.setoccurence(1).settakesparameters(True, "protocol").setparser(EnumParser(set([ "v1", "v2", "legacy" ])))
 	c.addoption(o)
-	
+
 	o = CmdLineOption("otherstuff", "q", None).setdescription("This is some datetime option")
 	o.setminmaxoccurence(0, 1).settakesparameters(True, "start").setparser(ExtendedDateTimeParser())
 	c.addoption(o)
-	
+
 	o = CmdLineOption("otherstuff2", "r", None).setdescription("This is some other datetime option")
 	o.setminmaxoccurence(0, 1).settakesparameters(True, "end").setparser(ExtendedDateTimeParser())
 	c.addoption(o)
-	
+
 	o = CmdLineOption("verbose", "v", None).setdescription("This option enables verbosity").setminmaxoccurence(0, 3)
 	c.addoption(o)
 

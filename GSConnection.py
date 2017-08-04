@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ class GSConnection():
 
 	def expectresponse(self, string, timeout = 1.0):
 		assert(isinstance(string, str))
-		
+
 		datagram = self._rxbuf.waitforline(2, timeout * self._args["timeout_factor"])
 		if datagram is None:
 			raise CommunicationException("timeout", "Waiting for response datagram '%s' timed out after %.1f secs." % (string, timeout))
@@ -42,7 +42,7 @@ class GSConnection():
 			raise CommunicationException("unparsable", "Waiting for first response datagram returned '%s' while expecting empty string." % (str(datagram)))
 		if datagram[1] != string:
 			raise CommunicationException("unparsable", "Waiting for second response datagram returned '%s' while expecting '%s'." % (str(datagram), string))
-	
+
 	def writeslow(self, string):
 		"""This will send a string char-by-char with about 1.8 chars/second.
 		Pathetically, some commands (such as the set time command) really need

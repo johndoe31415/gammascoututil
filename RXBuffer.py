@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class _CondTimeout():
 			timeout = min(timeout, self.remaining())
 		timeout = max(timeout, 0)
 		return timeout
-			
+
 
 class RXBuffer():
 	def __init__(self):
@@ -76,7 +76,7 @@ class RXBuffer():
 		if self._buffer.count(pattern) >= linecnt:
 			splitbuf = self._buffer.split(pattern)
 			result = [ buf.decode("utf-8") for buf in splitbuf[:linecnt] ]
-			self._buffer = pattern.join(splitbuf[linecnt:])			
+			self._buffer = pattern.join(splitbuf[linecnt:])
 			if (len(result) == 1) and (linecnt == 1):
 				result = result[0]
 			return result
@@ -93,15 +93,15 @@ class RXBuffer():
 		origtimeout = timeout
 
 		result = None
-		timeout = _CondTimeout(timeout)		
-		with self._lock:			
+		timeout = _CondTimeout(timeout)
+		with self._lock:
 			while (not self._eof) and (not timeout.expired()):
 				# Count
 				result = conditionfn(*conditionargs)
 				if result is not None:
 					break
 				self._cond.wait(timeout.next())
-		
+
 		if result is None:
 			self._log.debug("Waiting timed out after %s" % (str(sw)))
 		else:
@@ -112,7 +112,7 @@ class RXBuffer():
 	def waitforline(self, linecnt, timeout):
 		self._log.debug("Waiting for %d line(s) with a timeout of %.1f sec" % (linecnt, timeout))
 		return self.waitforcond(self._condition_crlf, (linecnt, ), timeout)
-	
+
 	def waitforbytes(self, bytecnt, timeout):
 		print(bytecnt, timeout)
 		self._log.debug("Waiting for %d byte(s) with a timeout of %.1f sec" % (bytecnt, timeout))
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 	print(buf.waitforline(1, 1.0))
 	buf.push("\r\nXYZ".encode("utf-8"))
 	print(buf.waitforline(1, 1.0))
-	
+
 	print(buf.waitforbytes(1, 1.0))
 	print(buf.waitforbytes(1, 1.0))
 	print(buf.waitforbytes(1, 1.0))

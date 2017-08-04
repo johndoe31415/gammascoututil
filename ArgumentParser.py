@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2013 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -71,7 +71,7 @@ class ArgumentParser():
 			ArgDefinition(name = "switchmode", args = [ "[standard|pc|online]" ], help = "Switches the Gamma Scout into the desired mode and then exits (leaving it in that mode)"),
 		]
 		self._knowncommands = { cmd.name: cmd for cmd in self._commands }
-		
+
 		orig_printhelp = self._parser.print_help
 		def printhelp(*args, **kwargs):
 			orig_printhelp(*args, **kwargs)
@@ -124,7 +124,7 @@ class ArgumentParser():
 		if self._args.help:
 			self._parser.print_help(file = sys.stderr)
 			sys.exit(0)
-		
+
 		for command in self._args.commands:
 			command = command.split(":")
 
@@ -132,7 +132,7 @@ class ArgumentParser():
 			cmdargs = command[1:]
 			if cmdname not in self._knowncommands:
 				self._parser.error("'%s' is not a known command; known commands are %s." % (cmdname, ", ".join(sorted(list(self._knowncommands)))))
-			
+
 			cmddef = self._knowncommands[cmdname]
 			if len(cmdargs) != len(cmddef.args):
 				self._parser.error("Command '%s' takes %d parameter(s), but you supplied %d parameter(s)." % (cmdname, len(cmddef.args), len(cmdargs)))

@@ -1,7 +1,7 @@
 #
 #	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
 #	Copyright (C) 2011-2011 Johannes Bauer
-#	
+#
 #	This file is part of GammaScoutUtil.
 #
 #	GammaScoutUtil is free software; you can redistribute it and/or modify
@@ -44,7 +44,7 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 		GSProtocolHandler.__init__(self, connection)
 		self._log = logging.getLogger("gsu.proto." + self.__class__.__name__)
 		self._currentmode = None
-		
+
 	def initmode(self):
 		# We have no idea in which state the Gamma Scout is at the moment, so
 		# we need to find out which one it is. We can always switch to Standard
@@ -78,7 +78,7 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 		command = "t%02d%02d%02d%02d%02d%02d" % (timestamp.day, timestamp.month, timestamp.year % 100, timestamp.hour, timestamp.minute, timestamp.second)
 		self._conn.writeslow(command)
 		self._conn.expectresponse("Datum und Zeit gestellt")
-	
+
 	def setonlineinterval(self, interval):
 		assert(isinstance(interval, int))
 		assert(0 <= interval <= 9)
@@ -96,7 +96,7 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 	def getversion(self):
 		self.switchmode(GSProtocolHandler.MODE_PC)
 		self._conn.write("v")
-		
+
 		versionstr = self._conn.waitforline(2)
 		if versionstr is None:
 			# Timeout, no response
@@ -141,7 +141,7 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 				datagram = self._conn.waitforline(1, 3.0)
 				if datagram is None:
 					raise CommunicationException("timeout", "No appropriate response within defined time when trying to switch to standard mode.")
-				
+
 				if datagram in [ "PC-Mode beendet", "Online-Mode beendet" ]:
 					# Standard mode now active
 					if datagram == "Online-Mode beendet":
@@ -187,7 +187,7 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 		buffill = self.getversion()["buffill"]
 		self._conn.write("b")
 		self._conn.expectresponse("GAMMA-SCOUT Protokoll")
-	
+
 		log = [ ]
 		linecnt = 0
 		while True:
@@ -211,11 +211,11 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 		self.switchmode(GSProtocolHandler.MODE_PC)
 		self._conn.write("z")
 		self._conn.expectresponse("Protokollspeicher wieder frei")
-	
+
 	def devicereset(self):
 		self.switchmode(GSProtocolHandler.MODE_PC)
 		self._conn.write("i")
-	
+
 	def readconfig(self):
 		self.switchmode(GSProtocolHandler.MODE_PC)
 		self._conn.write("c")
