@@ -91,6 +91,11 @@ class OutputBackendSqlite(OutputBackend):
 	def __init__(self, filename):
 		OutputBackend.__init__(self, filename)
 		self._db = SQLite(filename)
+		self._db.exec_mayfail_commit("""CREATE TABLE metadata (
+			key character varying PRIMARY KEY,
+			value character varying NOT NULL
+		);""")
+		self._db.exec_mayfail_commit("INSERT INTO metadata (key, value) VALUES ('dbversion', '1');")
 		self._db.exec_mayfail_commit("""CREATE TABLE data (
 			id integer PRIMARY KEY,
 			tfrom timestamp NOT NULL,

@@ -59,3 +59,14 @@ class LogDataParser():
 		self._debug("%s - %s: %d" % (self._curdate, todate, counts))
 		self._curdate = todate
 
+	def _expcts(counts):
+		"""Convert counts from Mirow's exponential representation into an
+		integer."""
+		(exponent, mantissa) = ((counts[0] & 0xfc) >> 2, ((counts[0] & 0x03) << 8) | counts[1])
+		exponent = (exponent + 1) // 2
+		if exponent == 0:
+			counts = mantissa
+		else:
+			counts = (mantissa + (2 ** 10)) * (2 ** (exponent - 1))
+		return counts
+
