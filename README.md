@@ -16,4 +16,4 @@ The reverse engineered Gamma Scout protocol documentation can be found at
 https://johannes-bauer.com/linux/gammascout/
 
 # License
-GNU GPL v2.
+GNU GPL v3.
