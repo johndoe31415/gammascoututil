@@ -51,6 +51,9 @@ class LogDataParser():
 		if timesecs is None:
 			self._log.warn("0x%x: Got no timesecs, but %d counts, ignoring (overflow = %s)." % (self._offset, counts, overflow))
 			return
+		if timesecs == 0:
+			self._log.warn("0x%x: Got zero timesecs, but %d counts, ignoring (overflow = %s)." % (self._offset, counts, overflow))
+			return
 		if self._curdate is None:
 			self._log.warn("0x%x: Got timesecs %s, counts %d without an initial timevalue, ignoring (overflow = %s)." % (self._offset, str(timesecs), counts, overflow))
 			return
