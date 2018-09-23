@@ -16,7 +16,7 @@ from GSOnline import GSOnline
 from GSProtocolHandler import GSProtocolHandler
 
 parser = FriendlyArgumentParser(prog = sys.argv[0], description = "Tool to simulate a Gamma Scout device for development and debugging", add_help = False)
-parser.add_argument("-p", "--protocol", metavar = "version", type = str, choices = [ "v1", "v2" ], default = "v2", help = "Specifies the device protocol the simulated Gamma Scout uses. Possible options are %(choices)s, default is %(default)s")
+parser.add_argument("-p", "--protocol", metavar = "version", type = str, choices = [ "v1", "v2", "v3" ], default = "v2", help = "Specifies the device protocol the simulated Gamma Scout uses. Possible options are %(choices)s, default is %(default)s")
 parser.add_argument("-m", "--model", metavar = "model", type = str, choices = [ "basic", "alert", "online" ], default = "alert", help = "Simulated Gamma Scout model. Possible options are %(choices)s, default is %(default)s")
 parser.add_argument("socket", metavar = "socket", type = str, help = "UNIX socket that is used for Gamma Scout simulation")
 args = parser.parse_args(sys.argv[1:])
@@ -61,7 +61,7 @@ class SimulationLogFile(object):
 class SimModel(object):
 	def __init__(self, args):
 		self._args = args
-		if self._args.protocol == "v2":
+		if self._args.protocol in [ "v2", "v3" ]:
 			self._mode = GSProtocolHandler.MODE_STANDARD
 #			self._logfile = SimulationLogFile("simdata/gs_v2_alert_65083.bin")
 			self._logfile = SimulationLogFile("simdata/gs_v2_alert_maxed.bin")
@@ -97,10 +97,14 @@ class SimModel(object):
 		unknowncmd = False
 
 		if self._mode == GSProtocolHandler.MODE_PC:
-			if self._args.protocol == "v2":
+			if self._args.protocol in [ "v2", "v3" ]:
 				if cmd == "v":
 					datestr = (datetime.datetime.utcnow() + self._timeoffset).strftime("%d.%m.%y %H:%M:%S")
-					response.append("Version 6.05 032123 %04x %s" % (self._logfile.buffill, datestr))
+					if self._args.protocol == "v2":
+						response.append("Version 6.05 032123 %04x %s" % (self._logfile.buffill, datestr))
+					else:
+						gammascout_datetime = datetime.datetime.now() + datetime.timedelta((random.random() - 0.5) * 20)
+						response.append("Version 6.05 032123 %04x %s %s" % (self._logfile.buffill, datestr, gammascout_datetime.strftime("%d.%m.%y %H:%M:%S")))
 				elif cmd == "z":
 					response.append("Protokollspeicher wieder frei")
 					self._logfile = SimulationLogFile("simdata/gs_v2_alert_00009.bin")
