@@ -1,0 +1,123 @@
+#!/usr/bin/python3
+#
+#	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
+#	Copyright (C) 2011-2019 Johannes Bauer
+#
+#	This file is part of GammaScoutUtil.
+#
+#	GammaScoutUtil is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	GammaScoutUtil is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with GammaScoutUtil; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+#
+
+import sys
+import datetime
+
+outfile = sys.argv[1]
+version = "7.02"
+hw = 0x1020
+serial = 123456
+now = datetime.datetime.now()
+nowstr = now.strftime("%d.%m.%y %H:%M:%S")
+softcal = True
+cal_header = "b0 00 07 7e 00"
+
+orig_calibration = [
+	(    2509, bytes.fromhex("1a05 f6da2d00")),
+	(    8602, bytes.fromhex("c1e1 acb12d00")),
+	(   32154, bytes.fromhex("2f09 95c63c00")),
+	(  172032, bytes.fromhex("0200 9af24b00")),
+	(  542362, bytes.fromhex("0400 1cc23c00")),
+	( 1277380, bytes.fromhex("8501 0e9e2d00")),
+	( 4513045, bytes.fromhex("9902 10b32d00")),
+]
+
+calibration = [
+	( 1200000, bytes.fromhex("1a05 f6da2d00")),
+	( 1237380, bytes.fromhex("8501 0e9e2d00")),
+	( 1247380, bytes.fromhex("8501 0e9e2d00")),
+	( 1257380, bytes.fromhex("8501 0e9e2d00")),
+	( 1267380, bytes.fromhex("8501 0e9e2d00")),
+	( 1277380, bytes.fromhex("8501 0e9e2d00")),
+	( 4513045, bytes.fromhex("9902 10b32d00")),
+]
+
+
+# orig: 1a05 f6da2d00
+# orig / 1306 / 3005174
+#	3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.417	
+#	588 cts, 120 secs, 4.900 cts/sec, 2.6 uSv/h, 0.533
+# 
+# mod1: c105 f6da2d00		1473
+# 3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.417
+# 588 cts, 120 secs, 4.900 cts/sec, 2.7 uSv/h, 0.554
+#
+# mod2: 1a09 f6da2d00		2330
+# 3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.418
+# 588 cts, 120 secs, 4.900 cts/sec, 3.4 uSv/h, 0.694
+#
+# mod3: 1a05 00da2d00		1306
+# 3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.419
+# 588 cts, 120 secs, 4.900 cts/sec, 2.6 uSv/h, 0.536
+
+
+
+def flt2counts(floatval):
+	exponent = (floatval & 0xf800) >> 11
+	mantissa = (floatval & 0x07ff)
+	return mantissa * (1 << exponent)
+
+def counts2flt(counts):
+	exponent = 0
+	mantissa = counts
+	while mantissa > 0x3ff:
+		mantissa //= 2
+		exponent += 1
+	return (((exponent) << 11) & 0xf800) | ((mantissa << 0) & 0x7ff)
+
+#for x in [ 0xaa, 0x1bb, 0x2cc, 0x5ff, 0x1234, 0xabcd ]:
+#	counts = flt2counts(x)
+#	rcounts = counts2flt(counts)
+#	rr = flt2counts(rcounts)
+#	print("%4x %d %4x %d" % (x, counts, rcounts, rr - counts))
+
+with open(outfile, "w") as datfile:
+	print("v", file = datfile)
+	print("Version %sLb07 %04x %06d 0220 %s" % (version, hw, serial, nowstr), file = datfile)
+	print("c", file = datfile)
+	if softcal:
+		print("GAMMA-SCOUT SoftCal gueltig", file = datfile)		
+	print("%s" % (cal_header), file = datfile)
+	for (count, ydata) in calibration:
+		count_data = int.to_bytes(count, length = 4, byteorder = "little")
+#		scalar_data = int.to_bytes(scalar, length = 2, byteorder = "little")
+#		offset_data = int.to_bytes(offset, length = 4, byteorder = "little")
+		#print("%s%s%s" % (count_data.hex(), scalar_data.hex(), offset_data.hex()), file = datfile)
+		print("%s%s" % (count_data.hex(), ydata.hex()), file = datfile)
+
+	print("b", file = datfile)
+	print("GAMMA-SCOUT Protokoll", file = datfile)
+
+	raw_data = bytearray()
+	#raw_data += bytes.fromhex("f5 ef 00 00 01 01 10")
+	raw_data += bytes.fromhex("f5 ed 00 00 00 01 01 10")
+	raw_data += bytes.fromhex("f5 0a")	# 2 Minute intervals
+	for count in range(1000):
+		raw_data += int.to_bytes(counts2flt(10 * count), length = 2, byteorder = "big")
+
+	for i in range(0, len(raw_data), 32):
+		line_data = raw_data[i : i + 32]
+		cksum = sum(line_data) & 0xff
+		print("%s%02x" % (line_data.hex(), cksum), file = datfile)

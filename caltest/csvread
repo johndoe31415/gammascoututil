@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+#
+#	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
+#	Copyright (C) 2011-2019 Johannes Bauer
+#
+#	This file is part of GammaScoutUtil.
+#
+#	GammaScoutUtil is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	GammaScoutUtil is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with GammaScoutUtil; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+#
+
+import sys
+import csv
+
+class gscsv:
+	delimiter = ';'
+	quotechar = "'"
+	escapechar = None
+	doublequote = True
+	skipinitialspace = False
+	lineterminator = '\r\n'
+	quoting = csv.QUOTE_MINIMAL
+
+
+infile = sys.argv[1]
+outfile = infile[:-4] + "_usv_per_rate.txt"
+with open(infile) as f, open(outfile, "w") as out:
+	for (lineno, line) in enumerate(csv.reader(f, dialect = gscsv), 1):
+		if lineno == 1:
+			continue
+		if len(line) != 6:
+			continue
+		(day, time, count, interval_secs, usvh, comment) = line
+		if count == "":
+			continue
+		count = int(count)
+		interval_secs = int(interval_secs)
+		usvh = float(usvh)
+		if count == 0:
+			continue
+		rate = count / interval_secs
+		print("%d cts, %d secs, %.3f cts/sec, %.1f uSv/h, %.3f" % (count, interval_secs, rate, usvh, usvh / rate))
+		print("%f" % (usvh / rate), file = out)
+#		if not ("dH/dt" in line):
+#			continue
+
