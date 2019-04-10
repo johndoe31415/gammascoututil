@@ -24,6 +24,7 @@
 
 import sys
 import csv
+from CalibrationData import CalibrationData
 
 class gscsv:
 	delimiter = ';'
@@ -34,6 +35,28 @@ class gscsv:
 	lineterminator = '\r\n'
 	quoting = csv.QUOTE_MINIMAL
 
+cal = CalibrationData(version = 7020)
+cal.parse("b0 00 07 7e 00", """
+cd0900001a05f6da2d00
+9a210000c1e1acb12d00
+9a7d00002f0995c63c00
+00a0020002009af24b00
+9a46080004001cc23c00
+c47d130085010e9e2d00
+15dd4400990210b32d00
+""")
+
+#cal = CalibrationData(version = 6050)
+#cal.parse("08 04 ab310b00", """
+#f3020000fb1de1f68601
+#cb2c00000600e6ff7602
+#ffffffff5b16acfc6702
+#00000000000000000000
+#00000000000000000000
+#00000000000000000000
+#00000000000000000000
+#00000000000000000000
+#""")
 
 infile = sys.argv[1]
 outfile = infile[:-4] + "_usv_per_rate.txt"
@@ -52,7 +75,9 @@ with open(infile) as f, open(outfile, "w") as out:
 		if count == 0:
 			continue
 		rate = count / interval_secs
-		print("%d cts, %d secs, %.3f cts/sec, %.1f uSv/h, %.3f" % (count, interval_secs, rate, usvh, usvh / rate))
+		my_usvh = cal.cts_per_sec_to_usv_per_hr(rate)
+		err = (my_usvh - usvh) / usvh
+		print("%d cts, %d secs, %.3f cts/sec, %.6f uSv/h (%.1f uSv/h %.1f%%), %.3f" % (count, interval_secs, rate, usvh, my_usvh, 100 * err, usvh / rate))
 		print("%f" % (usvh / rate), file = out)
 #		if not ("dH/dt" in line):
 #			continue

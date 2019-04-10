@@ -1,0 +1,80 @@
+#!/usr/bin/python3
+#
+#	GammaScoutUtil - Tool to communicate with Gamma Scout Geiger counters.
+#	Copyright (C) 2011-2019 Johannes Bauer
+#
+#	This file is part of GammaScoutUtil.
+#
+#	GammaScoutUtil is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by
+#	the Free Software Foundation; this program is ONLY licensed under
+#	version 3 of the License, later versions are explicitly excluded.
+#
+#	GammaScoutUtil is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with GammaScoutUtil; if not, write to the Free Software
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#	Johannes Bauer <JohannesBauer@gmx.de>
+#
+
+import sys
+import json
+import csv
+
+class gscsv:
+	delimiter = ';'
+	quotechar = "'"
+	escapechar = None
+	doublequote = True
+	skipinitialspace = False
+	lineterminator = '\r\n'
+	quoting = csv.QUOTE_MINIMAL
+
+jsondata = {
+#	"version": 6050,
+#	"caldata": [
+#		"08 04 ab310b00",
+#		"f3020000fb1de1f68601",
+#		"cb2c00000600e6ff7602",
+#		"ffffffff5b16acfc6702",
+#		"00000000000000000000",
+#		"00000000000000000000",
+#		"00000000000000000000",
+#		"00000000000000000000",
+#		"00000000000000000000",
+#	],
+	"version": 7020,
+	"caldata": [
+		"b0 00 07 7e 00",
+		"cd0900001a05f6da2d00",
+		"9a210000c1e1acb12d00",
+		"9a7d00002f0995c63c00",
+		"00a0020002009af24b00",
+		"9a46080004001cc23c00",
+		"c47d130085010e9e2d00",
+		"15dd4400990210b32d00",
+	],
+	"interval": 60,
+	"dose": { }
+}
+for csvfilename in sys.argv[1:]:
+	with open(csvfilename) as f:
+		for (lineno, line) in enumerate(csv.reader(f, dialect = gscsv), 1):
+			if lineno == 1:
+				continue
+			if line[2] == "":
+				continue			
+			counts = int(line[2])
+			interval = int(line[3])
+			dose = float(line[4])
+			dose_nan = not (dose == dose)
+			if dose_nan:
+				continue
+			assert(interval == jsondata["interval"])
+			jsondata["dose"][counts] = dose
+print(json.dumps(jsondata, sort_keys = True, indent = 4))

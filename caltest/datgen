@@ -26,53 +26,38 @@ import sys
 import datetime
 
 outfile = sys.argv[1]
-version = "7.02"
 hw = 0x1020
 serial = 123456
 now = datetime.datetime.now()
 nowstr = now.strftime("%d.%m.%y %H:%M:%S")
+orig_calibration_v6 = ("08 04 ab310b00", [
+	(        755, bytes.fromhex("fb1d e1f6 8601")),
+	(      11467, bytes.fromhex("0600 e6ff 7602")),
+	( 4294967295, bytes.fromhex("5b16 acfc 6702")),
+	(          0, bytes(6)),
+	(          0, bytes(6)),
+	(          0, bytes(6)),
+	(          0, bytes(6)),
+	(          0, bytes(6)),
+])
+
+orig_calibration_v7 = ("b0 00 07 7e 00", [
+	(    2509, bytes.fromhex("1a05 f6da 2d00")),
+	(    8602, bytes.fromhex("c1e1 acb1 2d00")),
+	(   32154, bytes.fromhex("2f09 95c6 3c00")),
+	(  172032, bytes.fromhex("0200 9af2 4b00")),
+	(  542362, bytes.fromhex("0400 1cc2 3c00")),
+	( 1277380, bytes.fromhex("8501 0e9e 2d00")),
+	( 4513045, bytes.fromhex("9902 10b3 2d00")),
+])
+
+#version = "6.05"
+#calibration = orig_calibration_v6
+#softcal = False
+
+version = "7.02"
+calibration = orig_calibration_v7
 softcal = True
-cal_header = "b0 00 07 7e 00"
-
-orig_calibration = [
-	(    2509, bytes.fromhex("1a05 f6da2d00")),
-	(    8602, bytes.fromhex("c1e1 acb12d00")),
-	(   32154, bytes.fromhex("2f09 95c63c00")),
-	(  172032, bytes.fromhex("0200 9af24b00")),
-	(  542362, bytes.fromhex("0400 1cc23c00")),
-	( 1277380, bytes.fromhex("8501 0e9e2d00")),
-	( 4513045, bytes.fromhex("9902 10b32d00")),
-]
-
-calibration = [
-	( 1200000, bytes.fromhex("1a05 f6da2d00")),
-	( 1237380, bytes.fromhex("8501 0e9e2d00")),
-	( 1247380, bytes.fromhex("8501 0e9e2d00")),
-	( 1257380, bytes.fromhex("8501 0e9e2d00")),
-	( 1267380, bytes.fromhex("8501 0e9e2d00")),
-	( 1277380, bytes.fromhex("8501 0e9e2d00")),
-	( 4513045, bytes.fromhex("9902 10b32d00")),
-]
-
-
-# orig: 1a05 f6da2d00
-# orig / 1306 / 3005174
-#	3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.417	
-#	588 cts, 120 secs, 4.900 cts/sec, 2.6 uSv/h, 0.533
-# 
-# mod1: c105 f6da2d00		1473
-# 3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.417
-# 588 cts, 120 secs, 4.900 cts/sec, 2.7 uSv/h, 0.554
-#
-# mod2: 1a09 f6da2d00		2330
-# 3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.418
-# 588 cts, 120 secs, 4.900 cts/sec, 3.4 uSv/h, 0.694
-#
-# mod3: 1a05 00da2d00		1306
-# 3 cts, 120 secs, 0.025 cts/sec, 0.0 uSv/h, 0.419
-# 588 cts, 120 secs, 4.900 cts/sec, 2.6 uSv/h, 0.536
-
-
 
 def flt2counts(floatval):
 	exponent = (floatval & 0xf800) >> 11
@@ -87,37 +72,40 @@ def counts2flt(counts):
 		exponent += 1
 	return (((exponent) << 11) & 0xf800) | ((mantissa << 0) & 0x7ff)
 
-#for x in [ 0xaa, 0x1bb, 0x2cc, 0x5ff, 0x1234, 0xabcd ]:
-#	counts = flt2counts(x)
-#	rcounts = counts2flt(counts)
-#	rr = flt2counts(rcounts)
-#	print("%4x %d %4x %d" % (x, counts, rcounts, rr - counts))
-
 with open(outfile, "w") as datfile:
+	raw_data = bytearray()
+	if version == "7.02":
+		raw_data += bytes.fromhex("f5 ed 00 00 00 01 01 10")
+		raw_data += bytes.fromhex("f5 0b")	# 1 minute intervals
+	else:
+		raw_data += bytes.fromhex("f5 ef 00 00 01 01 10")
+		raw_data += bytes.fromhex("f5 0a")	# 1 minute intervals
+
+	for i in range(20000):
+		#counts = i
+		#counts = round(i ** 1.2)
+		counts = round(i ** 1.5)
+		print(counts)
+		raw_data += int.to_bytes(counts2flt(counts), length = 2, byteorder = "big")
 	print("v", file = datfile)
-	print("Version %sLb07 %04x %06d 0220 %s" % (version, hw, serial, nowstr), file = datfile)
+	if version == "7.02":
+		print("Version %sLb07 %04x %06d %04x %s" % (version, hw, serial, len(raw_data), nowstr), file = datfile)
+	else:
+		print("Version %s %06d %04x %s" % (version, serial, len(raw_data), nowstr), file = datfile)
 	print("c", file = datfile)
 	if softcal:
 		print("GAMMA-SCOUT SoftCal gueltig", file = datfile)		
-	print("%s" % (cal_header), file = datfile)
-	for (count, ydata) in calibration:
+	print("%s" % (calibration[0]), file = datfile)
+	for (count, coefficients) in calibration[1]:
 		count_data = int.to_bytes(count, length = 4, byteorder = "little")
-#		scalar_data = int.to_bytes(scalar, length = 2, byteorder = "little")
-#		offset_data = int.to_bytes(offset, length = 4, byteorder = "little")
-		#print("%s%s%s" % (count_data.hex(), scalar_data.hex(), offset_data.hex()), file = datfile)
-		print("%s%s" % (count_data.hex(), ydata.hex()), file = datfile)
+		print("%s%s" % (count_data.hex(), coefficients.hex()), file = datfile)
 
 	print("b", file = datfile)
 	print("GAMMA-SCOUT Protokoll", file = datfile)
 
-	raw_data = bytearray()
-	#raw_data += bytes.fromhex("f5 ef 00 00 01 01 10")
-	raw_data += bytes.fromhex("f5 ed 00 00 00 01 01 10")
-	raw_data += bytes.fromhex("f5 0a")	# 2 Minute intervals
-	for count in range(1000):
-		raw_data += int.to_bytes(counts2flt(10 * count), length = 2, byteorder = "big")
-
 	for i in range(0, len(raw_data), 32):
 		line_data = raw_data[i : i + 32]
+		if len(line_data) != 32:
+			line_data += bytes(32 - len(line_data))
 		cksum = sum(line_data) & 0xff
 		print("%s%02x" % (line_data.hex(), cksum), file = datfile)
