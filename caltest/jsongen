@@ -68,7 +68,7 @@ for csvfilename in sys.argv[1:]:
 			if lineno == 1:
 				continue
 			if line[2] == "":
-				continue			
+				continue
 			counts = int(line[2])
 			interval = int(line[3])
 			dose = float(line[4])

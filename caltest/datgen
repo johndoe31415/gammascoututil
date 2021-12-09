@@ -94,7 +94,7 @@ with open(outfile, "w") as datfile:
 		print("Version %s %06d %04x %s" % (version, serial, len(raw_data), nowstr), file = datfile)
 	print("c", file = datfile)
 	if softcal:
-		print("GAMMA-SCOUT SoftCal gueltig", file = datfile)		
+		print("GAMMA-SCOUT SoftCal gueltig", file = datfile)
 	print("%s" % (calibration[0]), file = datfile)
 	for (count, coefficients) in calibration[1]:
 		count_data = int.to_bytes(count, length = 4, byteorder = "little")

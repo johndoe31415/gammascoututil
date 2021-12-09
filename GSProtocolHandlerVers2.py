@@ -246,5 +246,3 @@ class GSProtocolHandlerVers2(GSProtocolHandler):
 			except CommunicationException as e:
 				self._log.error("Unable to switch back to standard mode: %s" % (str(e)))
 			self._conn.close()
-
-
